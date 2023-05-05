@@ -1,0 +1,19 @@
+shader vesuvius_scan_grid(
+  string pathfmt = "",
+  float res = 791,
+  float offset_um = 0,
+  output float z = 0,
+  output color value = color(1, 0, 1),
+) {
+  float celldim = 5;
+  float offset = -offset_um / res;
+  if (backfacing()>0) offset = -offset;
+  int jx = ceil(P.x / celldim);
+  int jy = ceil(P.y / celldim);
+  int jz = ceil(P.z / celldim);
+  point p = (P + offset*N) / celldim - vector(jx-1, jy-1, jz-1);
+  int zindex = 499*p.z;
+  string path = format(pathfmt, jy, jx, jz);
+  value = texture3d(path, p, "subimage", zindex);
+  z = p.z;
+}

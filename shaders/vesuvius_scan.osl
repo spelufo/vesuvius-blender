@@ -1,0 +1,63 @@
+shader vesuvius_scan(
+  string data_dir = "//..\\data",
+  string scan = "scroll_1_54",
+  output string small_path = "",
+  output string grid_pathfmt = "",
+  output float res = 791,
+  output vector dims = vector(80.96, 78.88, 143.76),
+  ) {
+  if (scan == "scroll_1_54") {
+    small_path = concat(data_dir, "\\full-scrolls\\Scroll1.volpkg\\volumes_small\\20230205180739_small.tif");
+    grid_pathfmt = concat(data_dir, "\\full-scrolls\\Scroll1.volpkg\\volume_grids\\20230205180739\\cell_yxz_%03d_%03d_%03d.tif");
+    res = 791;
+    dims = vector(80.96, 78.88, 143.76);
+  }
+  else if (scan == "scroll_2_54") {
+    small_path = concat(data_dir, "\\full-scrolls\\Scroll2.volpkg\\volumes_small\\20230210143520_small.tif");
+    grid_pathfmt = concat(data_dir, "\\full-scrolls\\Scroll2.volpkg\\volume_grids\\20230210143520\\cell_yxz_%03d_%03d_%03d.tif");
+    res = 791;
+    dims = vector(119.84, 101.12, 144.28);
+  }
+  else if (scan == "scroll_2_88") {
+    small_path = concat(data_dir, "\\full-scrolls\\Scroll2.volpkg\\volumes_small\\20230212125146_small.tif");
+    grid_pathfmt = concat(data_dir, "\\full-scrolls\\Scroll2.volpkg\\volume_grids\\20230212125146\\cell_yxz_%03d_%03d_%03d.tif");
+    res = 791;
+    dims = vector(111.36, 84.80, 16.10);
+  }
+  else if (scan == "fragment_1_54") {
+    small_path = concat(data_dir, "\\fragments\\Frag1.volpkg\\volumes_small\\20230205142449_small.tif");
+    grid_pathfmt = concat(data_dir, "\\fragments\\Frag1.volpkg\\volume_grids\\20230205142449\\cell_yxz_%03d_%03d_%03d.tif");
+    res = 324;
+    dims = vector(71.98, 13.99, 72.19);
+  }
+  else if (scan == "fragment_1_88") {
+    small_path = concat(data_dir, "\\fragments\\Frag1.volpkg\\volumes_small\\20230213100222_small.tif");
+    grid_pathfmt = concat(data_dir, "\\fragments\\Frag1.volpkg\\volume_grids\\20230213100222\\cell_yxz_%03d_%03d_%03d.tif");
+    res = 324;
+    dims = vector(73.32, 16.08, 72.29);
+  }
+  else if (scan == "fragment_2_54") {
+    small_path = concat(data_dir, "\\fragments\\Frag2.volpkg\\volumes_small\\20230216174557_small.tif");
+    grid_pathfmt = concat(data_dir, "\\fragments\\Frag2.volpkg\\volume_grids\\20230216174557\\cell_yxz_%03d_%03d_%03d.tif");
+    res = 324;
+    dims = vector(99.84, 22.88, 141.11);
+  }
+  else if (scan == "fragment_2_88") {
+    small_path = concat(data_dir, "\\fragments\\Frag2.volpkg\\volumes_small\\20230226143835_small.tif");
+    grid_pathfmt = concat(data_dir, "\\fragments\\Frag2.volpkg\\volume_grids\\20230226143835\\cell_yxz_%03d_%03d_%03d.tif");
+    res = 324;
+    dims = vector(100.35, 21.12, 141.44);
+  }
+  else if (scan == "fragment_3_54") {
+    small_path = concat(data_dir, "\\fragments\\Frag3.volpkg\\volumes_small\\20230215142309_small.tif");
+    grid_pathfmt = concat(data_dir, "\\fragments\\Frag3.volpkg\\volume_grids\\20230215142309\\cell_yxz_%03d_%03d_%03d.tif");
+    res = 324;
+    dims = vector(63.12, 14.40, 66.56);
+  }
+  else if (scan == "fragment_3_88") {
+    small_path = concat(data_dir, "\\fragments\\Frag3.volpkg\\volumes_small\\20230212182547_small.tif");
+    grid_pathfmt = concat(data_dir, "\\fragments\\Frag3.volpkg\\volume_grids\\20230212182547\\cell_yxz_%03d_%03d_%03d.tif");
+    res = 324;
+    dims = vector(61.08, 16.44, 66.50);
+  }
+}
