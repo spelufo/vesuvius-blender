@@ -1,2 +1,4 @@
+# Blend files tend to exceed the github 100M limit. Ignore and add manually.
+*.blend
 *.blend1
 *.oso
