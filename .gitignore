@@ -2,3 +2,6 @@
 *.blend
 *.blend1
 *.oso
+/vesuvius/shaders
+/data
+__pycache__

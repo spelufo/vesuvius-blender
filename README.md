@@ -24,27 +24,47 @@ Any geometry you model and assign this material will slice through the volumetri
 
 ## Setup
 
+### Install the addon.
+
+One way to do it is like this, for ease of development:
+
+```bash
+git clone https://github.com/spelufo/vesuvius-blender
+addon_dir="$(pwd)/vesuvius-blender/vesuvius"
+cd ~/.config/blender/*/scripts/addons/
+ln -s "$addon_dir"
+```
+
+### Enable and configure the data directory
+
 You must have the textures downloaded in a data directory structured like the one
-in the [server](https://scrollprize.org/data). Open the `vesuvius_scan` material
-in the shader editor and set the leftmost script node `data_dir` to the path
-where you keep the data. To use this on another scan, change the `scan`
-parameter (`fragment_3_54`, `scroll_1_54`, etc.). There's also an `offset_um`
-parameter that will offset along the mesh normals.
+in the [server](https://scrollprize.org/data). You won't need all the data
+downloaded right away. The bare minimum is the `_small.tif` file to navigate the
+scan in low resolution. I plan to make the addon download the full-res grid
+files as needed if they are not present. For now it needs to be done separately.
 
-<img src="images/material.png">
+Open `Edit > Preferences`, `Add-ons`, and search for 'Vesuvius'.
 
-Adjust the grid bounds to choose a box region where the grid cells (full resolution)
-will be used. Outside this region the small/downsampled texture will show.
-These coordinates are cell coordinates, 1 = 500 voxels = 5 blender meters.
+Enable it with the tick, and unfold the preferences by clicking the drop down
+triangle. Set the "Path to data directory".
 
-<img src="images/grid_bounds.png">
+### Add a scan
 
+Create a new blender file, delete the default cube, and add a "Vesuvius Scan"
+from the 3d viewport's Add menu `Shift+A` in object mode. In the add menu you'll
+see a drop down with all the scans.
 
-Outside the sampling of the textures you can map the color intensities in any
-way you please. I've found it helpful to flatten the lower values a little bit
-to see more contrast trying not to loose the details.
+This will setup a material, shader and geometry to get started with a scan.
 
-<img src="images/color_mapping.png">
+Hit `Home` to zoom out to encompass the created planes.
+
+Set the "Viewport Shading" to "Rendered" by clicking on the fourth sphere icon on
+the viewport's top right corner. The addon configures the scene to use cycles
+and OSL, which is required.
+
+<img src="images/add_scan.png" />
+
+<img src="images/add_scan_result.png" />
 
 
 ## Modeling / Sculpting / Segmentation?
@@ -91,3 +111,10 @@ There's a hack in place using a curve node to adjust the intensity of the
 values from the textures, because for some reason they appear brighter in the
 middle z values, and darker towards the ends.
 
+
+## TODO
+
+- [ ] Download and cache files from volpkg as needed.
+- [ ] Download and import segments (obj) from volpkg/paths/.
+- [ ] Command to download cell at cursor or cells intersecting a mesh.
+- [ ] Read scan parameters from volpkg directories instead of hardcoding.
