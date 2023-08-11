@@ -1,8 +1,19 @@
-import os
+from pathlib import Path
 
-# Source data ##################################################################
+import base64
+import bpy
+import os
+import requests
+import threading
+from requests.auth import HTTPBasicAuth
+
 
 DATA_URL = "http://dl.ash2txt.org"
+
+
+def get_data_dir():
+	return Path(bpy.context.preferences.addons["vesuvius"].preferences.data_dir)
+
 
 class HerculaneumScan:
 	def __init__(self, volpkg_path, vol_id, resolution_um, xray_energy_KeV, width, height, slices):
@@ -13,6 +24,41 @@ class HerculaneumScan:
 		self.width = width
 		self.height = height
 		self.slices = slices
+
+	@property
+	def volpkg_dir(self):
+		return get_data_dir() / self.volpkg_path.replace('/', os.sep)
+
+	def filepath(self, path):
+		return self.volpkg_dir / path.replace('/', os.sep)
+
+	def url(self, path):
+		return f"{DATA_URL}/{self.volpkg_path}/{path}"
+
+	@property
+	def small_volume_path(self):
+		return f"volumes_small/{self.vol_id}_small.tif"
+
+	@property
+	def small_volume_filepath(self):
+		return self.filepath(self.small_volume_path)
+
+	@property
+	def small_volume_url(self):
+		return self.url(self.small_volume_path)
+
+	def grid_cell_filename(self, jx, jy, jz):
+		return f"cell_yxz_{jy:03}_{jx:03}_{jz:03}.tif"
+
+	def grid_cell_path(self, jx, jy, jz):
+		return f"volume_grids/{self.grid_cell_filename(jx, jy, jz)}"
+
+	def grid_cell_filepath(self, jx, jy, jz):
+		return self.filepath(self.grid_cell_path(jx, jy, jz))
+
+	def grid_cell_url(self, jx, jy, jz):
+		return self.url(self.grid_cell_path(jx, jy, jz))
+
 
 SCANS = {
 	"scroll_1_54": HerculaneumScan(
@@ -36,83 +82,30 @@ SCANS = {
 }
 
 
-# def zpad(i, ndigits):
-# 	return str(i).zfill(ndigits)
-
-# def scan_slice_filename(scan, iz):
-# 	ndigits = int(np.ceil(np.log10(scan.slices)))
-# 	return zpad(iz - 1, ndigits) + ".tif"
-
-# def scan_slice_server_path(scan, iz):
-# 	return f"{scan.path}/{scan_slice_filename(scan, iz)}"
-
-# def scan_slice_path(scan, iz):
-# 	return os.path.join(DATA_DIR, scan_slice_server_path(scan, iz))
-
-# def scan_slice_url(scan, iz):
-# 	return f"{DATA_URL}/{scan_slice_server_path(scan, iz)}"
-
-# def scan_dimensions_mm(scan):
-# 	return scan.resolution_um * np.array([scan.width, scan.height, scan.slices]) / 1000
-
-# def scan_position_mm(scan, iy, ix, iz):
-# 	return scan.resolution_um * np.array([ix - 1, iy - 1, iz - 1]) / 1000
+def download_file(scan, path, context):
+	filepath = scan.filepath(path)
+	if filepath.is_file():
+		return
+	url = scan.url(path)
+	if not filepath.parent.is_dir():
+		os.makedirs(filepath.parent)
+	response = requests.get(url, auth=HTTPBasicAuth('registeredusers', 'only'), stream=True)
+	if not response.ok:
+		# context.report({"ERROR", f"Vesuvius download_file request failed with status code {response.status}."})
+		return
+	# size = int(response.headers.get("Content-Length", 1e9))
+	# size_downloaded = 0
+	with open(filepath, "wb") as file:
+		for data in response.iter_content(chunk_size=None):
+			file.write(data)
+			# size_downloaded += len(data)
+			# context.window_manager.progress_update(min(size_downloaded/size, 1)
+	# context.report({"INFO", f"Finished downloading {path}."})
 
 
-# Grid #########################################################################
-
-# GRID_DIR = DATA_DIR
-# GRID_SIZE = 500  # The size of each cell.
-
-# def grid_size(scan, dim=None):
-# 	size = (int(np.ceil(scan.height / GRID_SIZE)),
-# 			int(np.ceil(scan.width / GRID_SIZE)),
-# 			int(np.ceil(scan.slices / GRID_SIZE)))
-
-# 	return size if dim is None else size[dim]
-
-# def grid_cell_range(j, max_val):
-# 	return slice(GRID_SIZE * (j - 1), min(GRID_SIZE * j, max_val))
-
-# def grid_cell_filename(scan, jy, jx, jz):
-# 	return f"cell_yxz_{zpad(jy, 3)}_{zpad(jx, 3)}_{zpad(jz, 3)}.tif"
-
-# def grid_cell_server_path(scan, jy, jx, jz):
-# 	path = scan.path.replace("/volumes/", "/volume_grids/")
-# 	return f"{path}/{grid_cell_filename(scan, jy, jx, jz)}"
-
-# def grid_cell_path(scan, jy, jx, jz):
-# 	return os.path.join(GRID_DIR, grid_cell_server_path(scan, jy, jx, jz))
-
-# def have_grid_cell(scan, jy, jx, jz):
-# 	return os.path.isfile(grid_cell_path(scan, jy, jx, jz))
-
-# def have_grid_cells(scan, jys, jxs, jz):
-# 	for jy in jys:
-# 		for jx in jxs:
-# 			if not have_grid_cell(scan, jy, jx, jz):
-# 				return False
-# 	return True
-
-# def load_grid_cell(scan, jy, jx, jz):
-# 	return io.imread(grid_cell_path(scan, jy, jx, jz))
-
-
-# Small ########################################################################
-
-# SMALL_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data_small")
-# SMALLER_BY = 10
-
-# def small_size(scan):
-# 	return (len(range(0, scan.height, SMALLER_BY)),
-# 			len(range(0, scan.width, SMALLER_BY)),
-# 			len(range(0, scan.slices, SMALLER_BY)))
-
-# def small_slice_path(scan, iz):
-# 	return os.path.join(SMALL_DIR, scan.path, scan_slice_filename(scan, iz))
-
-# def small_volume_path(scan):
-# 	return os.path.join(SMALL_DIR, f"{scan.path}_small.tif")
-
-# def load_small_volume(scan, mmap=True):
-# 	return io.imread(small_volume_path(scan), plugin='tifffile', as_gray=False)
+def download_file_start(scan, path, context):
+	filepath = scan.filepath(path)
+	if filepath.is_file():
+		return
+	thread = threading.Thread(target=download_file, args=(scan, path, None))
+	thread.start()

@@ -8,10 +8,12 @@ if "bpy" not in locals():
 	import bpy
 	from . import vesuvius
 	from . import shaders
+	from . import data
 	from . import utils
 else:
 	import importlib
 	importlib.reload(utils)
+	importlib.reload(data)
 	importlib.reload(shaders)
 	importlib.reload(vesuvius)
 

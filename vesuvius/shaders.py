@@ -54,10 +54,9 @@ shader vesuvius_scan(
 def osl_str(s):
 	return '"' + repr(str(s))[1:-1] + '"'
 
-def generate_shader(preferences, scan):
-	volpkg_path = Path(preferences.data_dir) / scan.volpkg_path
-	small_path = volpkg_path / "volumes_small" / f"{scan.vol_id}_small.tif"
-	grid_pathfmt = volpkg_path / "volume_grids" / scan.vol_id / "cell_yxz_%03d_%03d_%03d.tif"
+def generate_shader(scan):
+	small_path = scan.small_volume_filepath
+	grid_pathfmt = scan.volpkg_dir / "volume_grids" / scan.vol_id / "cell_yxz_%03d_%03d_%03d.tif"
 	res = scan.resolution_um * 100
 	dimsx, dimsy, dimsz = scan.width / 100, scan.height / 100, scan.slices / 100
 	dims = f"vector({dimsx}, {dimsy}, {dimsz})"

@@ -56,6 +56,7 @@ see a drop down with all the scans.
 
 This will setup a material, shader and geometry to get started with a scan.
 
+
 Hit `Home` to zoom out to encompass the created planes.
 
 Set the "Viewport Shading" to "Rendered" by clicking on the fourth sphere icon on
@@ -65,6 +66,15 @@ and OSL, which is required.
 <img src="images/add_scan.png" />
 
 <img src="images/add_scan_result.png" />
+
+Adding a scan will also start downloading the `_small.tif` file in a background
+thread, if you didn't have it. There's no error checking or progress reporting
+of this yet, delete the file and download it manually if you run into problems.
+Since these files can be a few GB in size, on linux you'll see the part of the
+file that's been downloaded appear on the meshes. Toggling the viewport shading
+mode updates the texture.
+
+<img src="images/scroll_2_half_downloaded.png" style="width: 48%" /><img src="images/scroll_2_downloaded.png"  style="width: 48%" />
 
 
 ## Modeling / Sculpting / Segmentation?

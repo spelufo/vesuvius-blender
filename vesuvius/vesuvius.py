@@ -1,25 +1,26 @@
 import bpy, bmesh
+from pathlib import Path
 
-from .data import *  # noqa
+from . import data
 from .shaders import *  # noqa
 from .utils import *  # noqa
 
 ADDON_ID = "vesuvius"
 
-def setup_scene(preferences, scene):
+def setup_scene(scene, preview_samples=1):
 	scene.render.engine = "CYCLES"
 	scene.cycles.shading_system = True
-	scene.cycles.preview_samples = preferences.get('cycles_preview_samples', 1)
+	scene.cycles.preview_samples = preview_samples
 
 
-def setup_material(preferences, scan):
+def setup_material(scan):
 	material = get_or_create(bpy.data.materials, f"vesuvius_volpkg_{scan.vol_id}")
 	material.use_nodes = True
 	node_tree = material.node_tree
 	node_tree.nodes.clear()
 
 	script_text = get_or_create(bpy.data.texts, f"vesuvius_shader_{scan.vol_id}")
-	script_text.from_string(generate_shader(preferences, scan))
+	script_text.from_string(generate_shader(scan))
 
 	output = node_tree.nodes.new(type="ShaderNodeOutputMaterial")
 	output.location = (400, 0)
@@ -34,7 +35,7 @@ def setup_material(preferences, scan):
 	return material
 
 
-def setup_geometry(preferences, scan, material):
+def setup_geometry(scan, material):
 	dx, dy, dz = scan.width/100, scan.height/100, scan.slices/100
 	plane_xy = create_quad((0, 0, 0), (dx, 0, 0), (dx, dy, 0), (0, dy, 0), "PlaneXY")
 	plane_yz = create_quad((0, 0, 0), (0, dy, 0), (0, dy, dz), (0, 0, dz), "PlaneYZ")
@@ -68,12 +69,17 @@ class VesuviusAddScan(bpy.types.Operator):
 	)
 
 	def execute(self, context):
-		preferences = context.preferences
-		addon_prefs = preferences.addons[ADDON_ID].preferences
-		scan = SCANS[self.scan_name]
-		setup_scene(addon_prefs, context.scene)
-		material = setup_material(addon_prefs, scan)
-		setup_geometry(addon_prefs, scan, material)
+		if not data.get_data_dir().is_dir():
+			self.report({"ERROR"}, "Vesuvius data directory not found.")
+			return {"CANCELLED"}
+		scan = data.SCANS.get(self.scan_name)
+		if not scan:
+			self.report({"ERROR"}, f"Scan {repr(self.scan_name)} not found.")
+			return {"CANCELLED"}
+		data.download_file_start(scan, scan.small_volume_path, context)
+		setup_scene(context.scene)
+		material = setup_material(scan)
+		setup_geometry(scan, material)
 		return {"FINISHED"}
 
 
