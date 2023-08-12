@@ -51,7 +51,7 @@ class HerculaneumScan:
 		return f"cell_yxz_{jy+1:03}_{jx+1:03}_{jz+1:03}.tif"
 
 	def grid_cell_path(self, jx, jy, jz):
-		return f"volume_grids/{self.grid_cell_filename(jx, jy, jz)}"
+		return f"volume_grids/{self.vol_id}/{self.grid_cell_filename(jx, jy, jz)}"
 
 	def grid_cell_filepath(self, jx, jy, jz):
 		return self.filepath(self.grid_cell_path(jx, jy, jz))
@@ -82,6 +82,11 @@ SCANS = {
 }
 
 
+# World to grid coordinates (jx, jy, jz), 0-indexed.
+def world_to_grid(v):
+	return (int(v.x//5), int(v.y//5), int(v.z//5))
+
+
 def download_file(scan, path):
 	filepath = scan.filepath(path)
 	if filepath.is_file():
@@ -102,11 +107,12 @@ def download_file(scan, path):
 	print(f"Finished downloading {path}")
 
 
-# Fire and forget. A progress bar somewhere would be nicer. One way to do it
-# is to have download_file write status information to a queue.Queue that the
-# main thread checks periodically and uses to give visual feedback. The periodic
-# callback can be setup with bpy.app.timers.register(f), which arranges for the
-# function f to be called after some time at the end of the main UI event loop.
+# Fire and forget. A progress bar somewhere would be best. At least show status:
+# Use a ThreadPoolExecutor and check status from the main thread by registering
+# a function f with bpy.app.timers.register(f), and have f check status by
+# calling concurrent.futures.wait(dlfuts, timeout=0, return_when=FIRST_COMPLETED).
+# Also, a way to dedupe concurrent calls is needed. Checking that the file
+# exists is not enough.
 def download_file_start(scan, path, context):
 	filepath = scan.filepath(path)
 	if filepath.is_file():

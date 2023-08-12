@@ -128,3 +128,4 @@ middle z values, and darker towards the ends.
 - [ ] Download and import segments (obj) from volpkg/paths/.
 - [ ] Command to download cell at cursor or cells intersecting a mesh.
 - [ ] Read scan parameters from volpkg directories instead of hardcoding.
+- [ ] Move vertex along normal and bitangents?

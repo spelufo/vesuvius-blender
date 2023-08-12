@@ -3,5 +3,6 @@
 *.blend1
 *.oso
 /vesuvius/shaders
+/blends
 /data
 __pycache__

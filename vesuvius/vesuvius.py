@@ -1,11 +1,33 @@
 import bpy, bmesh
 from pathlib import Path
 
-from . import data
+from .data import *  # noqa
 from .shaders import *  # noqa
 from .utils import *  # noqa
 
 ADDON_ID = "vesuvius"
+
+_current_scan = None
+def get_current_scan():
+	global _current_scan
+	if _current_scan:
+		return _current_scan
+	vol_id = ""
+	for mat in bpy.data.materials:
+		if mat.name.startswith("vesuvius_volpkg_"):
+			vol_id = mat.name.removeprefix("vesuvius_volpkg_")
+	if not vol_id:
+		return None
+	for scan in SCANS.values():
+		if scan.vol_id == vol_id:
+			_current_scan = scan
+			return scan
+
+
+def set_current_scan(scan):
+	global _current_scan
+	_current_scan = scan
+
 
 def setup_scene(scene, preview_samples=1):
 	scene.render.engine = "CYCLES"
@@ -69,15 +91,16 @@ class VesuviusAddScan(bpy.types.Operator):
 	)
 
 	def execute(self, context):
-		if not data.get_data_dir().is_dir():
+		if not get_data_dir().is_dir():
 			self.report({"ERROR"}, "Vesuvius data directory not found.")
 			return {"CANCELLED"}
-		scan = data.SCANS.get(self.scan_name)
+		scan = SCANS.get(self.scan_name)
 		if not scan:
 			self.report({"ERROR"}, f"Scan {repr(self.scan_name)} not found.")
 			return {"CANCELLED"}
+		set_current_scan(scan)
 		self.report({"INFO"}, f"Requested {scan.small_volume_path}.")
-		data.download_file_start(scan, scan.small_volume_path, context)
+		download_file_start(scan, scan.small_volume_path, context)
 		setup_scene(context.scene)
 		material = setup_material(scan)
 		setup_geometry(scan, material)
@@ -98,55 +121,27 @@ class VesuviusDownloadGridCells(bpy.types.Operator):
 			self.report({"ERROR"}, "Vesuvius data directory not found.")
 			return {"CANCELLED"}
 
-		obj = bpy.context.active_object
-
-		if not bpy.context.selected_objects or not obj or obj.type != 'MESH':
-			return {"CANCELLED"}
-
-		# If there's more than one pick the last one. If the active object has a
-		# vesuvius_volpkg_ material assigned, use that.
-		vol_id = ""
-		matname_prefix = "vesuvius_volpkg_"
-		for mat in bpy.data.materials:
-			if mat.name.startswith(matname_prefix):
-				vol_id = mat.name.replace(matname_prefix, "")
-		for mat in obj.data.materials:
-			if mat.name.startswith(matname_prefix):
-				vol_id = mat.name.replace(matname_prefix, "")
-
-		scan = next(filter(lambda s: s.vol_id == vol_id, data.SCANS.values()), None)
+		scan = get_current_scan()
 		if not scan:
-			self.report({"ERROR"}, f"Scan with vol_id '{vol_id}' not found.")
+			self.report({"ERROR"}, "No current scan, add a Vesuvius Scan first.")
 			return {"CANCELLED"}
 
-		# TODO: It makes more sense to use the bounding box since the shader
-		# already expects it to be a rectangular region.
+		cursor_p = context.scene.cursor.location
+		if not (
+			0 < cursor_p.x < scan.width/100 and
+			0 < cursor_p.y < scan.height/100 and
+			0 < cursor_p.z < scan.slices/100):
+			self.report({"ERROR"}, "Cursor out of scan bounds.")
+			return {"CANCELLED"}
+
+		cell = world_to_grid(cursor_p)
+
+		cell_path = scan.grid_cell_path(*cell)
+		self.report({"INFO"}, f"Requested {cell_path}.")
+		download_file_start(scan, cell_path, context)
+
 		# TODO: Set the material's MinJ and MaxJ.
-
-		vertices = [v.co for v in obj.data.vertices if v.select]
-		vertices = vertices or [v.co for v in obj.data.vertices]
-		cells = {
-			(int(v.x//5), int(v.y//5), int(v.z//5))
-			for v in vertices
-			if  0 <= v.x < scan.width/100
-			and 0 <= v.y < scan.height/100
-			and 0 <= v.z < scan.slices/100
-		}
-		if not cells:
-			self.report({"ERROR"}, f"No cells overlapping geometry.")
-			return {"CANCELLED"}
-
-		# TODO: This check is a bit lame, but for now let's prevent downloading too
-		# many cells at once.
-		if len(cells) > 12:
-			self.report({"ERROR"}, f"Too many cells ({len(cells)}) overlapping geometry.")
-			return {"CANCELLED"}
-
-		for cell in cells:
-			cell_path = scan.grid_cell_path(*cell)
-			self.report({"INFO"}, f"Requested {cell_path}.")
-			data.download_file_start(scan, cell_path, context)
-
+		self.report({"INFO"}, f"Cell: {cell}.")
 		return {"FINISHED"}
 
 
