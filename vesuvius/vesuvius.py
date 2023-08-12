@@ -76,6 +76,7 @@ class VesuviusAddScan(bpy.types.Operator):
 		if not scan:
 			self.report({"ERROR"}, f"Scan {repr(self.scan_name)} not found.")
 			return {"CANCELLED"}
+		self.report({"INFO"}, f"Requested {scan.small_volume_path}.")
 		data.download_file_start(scan, scan.small_volume_path, context)
 		setup_scene(context.scene)
 		material = setup_material(scan)
@@ -85,6 +86,68 @@ class VesuviusAddScan(bpy.types.Operator):
 
 def menu_func(self, context):
 	self.layout.operator_menu_enum(VesuviusAddScan.bl_idname, "scan_name")
+
+
+
+class VesuviusDownloadGridCells(bpy.types.Operator):
+	bl_idname = "object.vesuvius_download_grid_cells"
+	bl_label = "Download grid cells"
+
+	def execute(self, context):
+		if not data.get_data_dir().is_dir():
+			self.report({"ERROR"}, "Vesuvius data directory not found.")
+			return {"CANCELLED"}
+
+		obj = bpy.context.active_object
+
+		if not bpy.context.selected_objects or not obj or obj.type != 'MESH':
+			return {"CANCELLED"}
+
+		# If there's more than one pick the last one. If the active object has a
+		# vesuvius_volpkg_ material assigned, use that.
+		vol_id = ""
+		matname_prefix = "vesuvius_volpkg_"
+		for mat in bpy.data.materials:
+			if mat.name.startswith(matname_prefix):
+				vol_id = mat.name.replace(matname_prefix, "")
+		for mat in obj.data.materials:
+			if mat.name.startswith(matname_prefix):
+				vol_id = mat.name.replace(matname_prefix, "")
+
+		scan = next(filter(lambda s: s.vol_id == vol_id, data.SCANS.values()), None)
+		if not scan:
+			self.report({"ERROR"}, f"Scan with vol_id '{vol_id}' not found.")
+			return {"CANCELLED"}
+
+		# TODO: It makes more sense to use the bounding box since the shader
+		# already expects it to be a rectangular region.
+		# TODO: Set the material's MinJ and MaxJ.
+
+		vertices = [v.co for v in obj.data.vertices if v.select]
+		vertices = vertices or [v.co for v in obj.data.vertices]
+		cells = {
+			(int(v.x//5), int(v.y//5), int(v.z//5))
+			for v in vertices
+			if  0 <= v.x < scan.width/100
+			and 0 <= v.y < scan.height/100
+			and 0 <= v.z < scan.slices/100
+		}
+		if not cells:
+			self.report({"ERROR"}, f"No cells overlapping geometry.")
+			return {"CANCELLED"}
+
+		# TODO: This check is a bit lame, but for now let's prevent downloading too
+		# many cells at once.
+		if len(cells) > 12:
+			self.report({"ERROR"}, f"Too many cells ({len(cells)}) overlapping geometry.")
+			return {"CANCELLED"}
+
+		for cell in cells:
+			cell_path = scan.grid_cell_path(*cell)
+			self.report({"INFO"}, f"Requested {cell_path}.")
+			data.download_file_start(scan, cell_path, context)
+
+		return {"FINISHED"}
 
 
 class VesuviusPreferences(bpy.types.AddonPreferences):
@@ -102,10 +165,12 @@ def register():
 	bpy.utils.register_class(VesuviusPreferences)
 	bpy.utils.register_class(VesuviusAddScan)
 	bpy.types.VIEW3D_MT_add.append(menu_func)
+	bpy.utils.register_class(VesuviusDownloadGridCells)
 
 
 def unregister():
 	bpy.utils.unregister_class(VesuviusPreferences)
 	bpy.utils.unregister_class(VesuviusAddScan)
 	bpy.types.VIEW3D_MT_add.remove(menu_func)
+	bpy.utils.unregister_class(VesuviusDownloadGridCells)
 

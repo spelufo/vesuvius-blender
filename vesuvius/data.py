@@ -48,7 +48,7 @@ class HerculaneumScan:
 		return self.url(self.small_volume_path)
 
 	def grid_cell_filename(self, jx, jy, jz):
-		return f"cell_yxz_{jy:03}_{jx:03}_{jz:03}.tif"
+		return f"cell_yxz_{jy+1:03}_{jx+1:03}_{jz+1:03}.tif"
 
 	def grid_cell_path(self, jx, jy, jz):
 		return f"volume_grids/{self.grid_cell_filename(jx, jy, jz)}"
@@ -82,7 +82,7 @@ SCANS = {
 }
 
 
-def download_file(scan, path, context):
+def download_file(scan, path):
 	filepath = scan.filepath(path)
 	if filepath.is_file():
 		return
@@ -91,7 +91,6 @@ def download_file(scan, path, context):
 		os.makedirs(filepath.parent)
 	response = requests.get(url, auth=HTTPBasicAuth('registeredusers', 'only'), stream=True)
 	if not response.ok:
-		# context.report({"ERROR", f"Vesuvius download_file request failed with status code {response.status}."})
 		return
 	# size = int(response.headers.get("Content-Length", 1e9))
 	# size_downloaded = 0
@@ -100,12 +99,17 @@ def download_file(scan, path, context):
 			file.write(data)
 			# size_downloaded += len(data)
 			# context.window_manager.progress_update(min(size_downloaded/size, 1)
-	# context.report({"INFO", f"Finished downloading {path}."})
+	print(f"Finished downloading {path}")
 
 
+# Fire and forget. A progress bar somewhere would be nicer. One way to do it
+# is to have download_file write status information to a queue.Queue that the
+# main thread checks periodically and uses to give visual feedback. The periodic
+# callback can be setup with bpy.app.timers.register(f), which arranges for the
+# function f to be called after some time at the end of the main UI event loop.
 def download_file_start(scan, path, context):
 	filepath = scan.filepath(path)
 	if filepath.is_file():
 		return
-	thread = threading.Thread(target=download_file, args=(scan, path, None))
+	thread = threading.Thread(target=download_file, args=(scan, path))
 	thread.start()
