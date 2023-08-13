@@ -1,9 +1,8 @@
 import bpy, bmesh
-from pathlib import Path
 
-from .data import *  # noqa
-from .shaders import *  # noqa
-from .utils import *  # noqa
+from .data import *
+from .shaders import *
+from .utils import *
 
 ADDON_ID = "vesuvius"
 
@@ -117,7 +116,7 @@ class VesuviusDownloadGridCells(bpy.types.Operator):
 	bl_label = "Download grid cells"
 
 	def execute(self, context):
-		if not data.get_data_dir().is_dir():
+		if not get_data_dir().is_dir():
 			self.report({"ERROR"}, "Vesuvius data directory not found.")
 			return {"CANCELLED"}
 

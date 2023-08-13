@@ -1,4 +1,6 @@
-import bpy, bmesh
+import bpy
+import bmesh
+
 
 def get_or_create(collection, name):
 	o = collection.get(name)

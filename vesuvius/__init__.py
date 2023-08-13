@@ -4,8 +4,8 @@ bl_info = {
 	"category": "Object",
 }
 
+
 if "bpy" not in locals():
-	import bpy
 	from . import vesuvius
 	from . import shaders
 	from . import data
@@ -20,6 +20,7 @@ else:
 
 def register():
 	vesuvius.register()
+
 
 def unregister():
 	vesuvius.unregister()

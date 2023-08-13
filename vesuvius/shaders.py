@@ -1,5 +1,3 @@
-from pathlib import Path
-
 SHADER_TEMPLATE = """
 struct Scan {
 	string small_path;
@@ -12,7 +10,7 @@ struct Scan {
 
 float texture3d_fixed_up(string path, point ptex, float zres) {
 	int zindex = int(zres-1)*ptex.z;
-	float zcorrection = 2*(ptex.z - 0.5)*(ptex.z - 0.5) + 0.5; 
+	float zcorrection = 2*(ptex.z - 0.5)*(ptex.z - 0.5) + 0.5;
 	return zcorrection*texture3d(path, ptex, "subimage", zindex);
 }
 

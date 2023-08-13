@@ -1,6 +1,5 @@
 from pathlib import Path
 
-import base64
 import bpy
 import os
 import requests
@@ -84,7 +83,7 @@ SCANS = {
 
 # World to grid coordinates (jx, jy, jz), 0-indexed.
 def world_to_grid(v):
-	return (int(v.x//5), int(v.y//5), int(v.z//5))
+	return (int(v.x // 5), int(v.y // 5), int(v.z // 5))
 
 
 def download_file(scan, path):
