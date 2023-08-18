@@ -121,6 +121,15 @@ There's a hack in place using a curve node to adjust the intensity of the
 values from the textures, because for some reason they appear brighter in the
 middle z values, and darker towards the ends.
 
+Under linux and gnome it is not uncommon for the UI to take a few secconds to
+render, and if it takes too long gnome will pop up the force quit / wait dialog,
+which only makes the problem worse. The timeout can be increased with
+
+```bash
+gsettings set org.gnome.mutter check-alive-timeout 15000  # From 5000 (ms)
+```
+
+
 
 ## TODO
 

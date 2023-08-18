@@ -11,7 +11,8 @@ DATA_URL = "http://dl.ash2txt.org"
 
 
 def get_data_dir():
-	return Path(bpy.context.preferences.addons["vesuvius"].preferences.data_dir)
+	d = bpy.context.preferences.addons["vesuvius"].preferences.data_dir
+	return Path(d) if d else None
 
 
 class HerculaneumScan:

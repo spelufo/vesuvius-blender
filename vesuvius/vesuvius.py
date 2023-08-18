@@ -56,16 +56,34 @@ def setup_material(scan):
 	return material
 
 
-def setup_geometry(scan, material):
-	dx, dy, dz = scan.width/100, scan.height/100, scan.slices/100
-	plane_xy = create_quad((0, 0, 0), (dx, 0, 0), (dx, dy, 0), (0, dy, 0), "PlaneXY")
-	plane_yz = create_quad((0, 0, 0), (0, dy, 0), (0, dy, dz), (0, 0, dz), "PlaneYZ")
-	plane_zx = create_quad((0, 0, 0), (0, 0, dz), (dx, 0, dz), (dx, 0, 0), "PlaneZX")
+def reload_shader(scan):
+	print("reload shader")
+	# material = get_or_create(bpy.data.materials, f"vesuvius_volpkg_{scan.vol_id}")
+	# node_tree = material.node_tree
+	script_text = get_or_create(bpy.data.texts, f"vesuvius_shader_{scan.vol_id}")
+	script_text.from_string(generate_shader(scan))
+
+
+def create_axis_quads(px, py, pz, dx, dy, dz, material, name="Plane"):
+	plane_xy = create_quad((px, py, pz), (px + dx, py, pz), (px + dx, py + dy, pz), (px, py + dy, pz), f"{name}XY")
+	plane_yz = create_quad((px, py, pz), (px, py + dy, pz), (px, py + dy, pz + dz), (px, py, pz + dz), f"{name}YZ")
+	plane_zx = create_quad((px, py, pz), (px, py, pz + dz), (px + dx, py, pz + dz), (px + dx, py, pz), f"{name}ZX")
 	plane_xy.data.materials.append(material)
 	plane_yz.data.materials.append(material)
 	plane_zx.data.materials.append(material)
+	return plane_xy, plane_yz, plane_zx
+
+
+def create_scan_quads(scan, material):
+	dx, dy, dz = scan.width/100, scan.height/100, scan.slices/100
+	plane_xy, plane_yz, plane_zx = create_axis_quads(0, 0, 0, dx, dy, dz, material)
 	plane_yz.location.x += dx/2
 	plane_zx.location.y += dy/2
+
+
+def create_cell_quads(cell, material):
+	name=f"Cell_{cell[0]:02}_{cell[1]:02}_{cell[2]:02}"
+	create_axis_quads(5*cell[0], 5*cell[1], 5*cell[2], 5, 5, 5, material, name=name)
 
 
 class VesuviusAddScan(bpy.types.Operator):
@@ -90,7 +108,7 @@ class VesuviusAddScan(bpy.types.Operator):
 	)
 
 	def execute(self, context):
-		if not get_data_dir().is_dir():
+		if not get_data_dir():
 			self.report({"ERROR"}, "Vesuvius data directory not found.")
 			return {"CANCELLED"}
 		scan = SCANS.get(self.scan_name)
@@ -102,7 +120,7 @@ class VesuviusAddScan(bpy.types.Operator):
 		download_file_start(scan, scan.small_volume_path, context)
 		setup_scene(context.scene)
 		material = setup_material(scan)
-		setup_geometry(scan, material)
+		create_scan_quads(scan, material)
 		return {"FINISHED"}
 
 
@@ -110,13 +128,9 @@ def menu_func(self, context):
 	self.layout.operator_menu_enum(VesuviusAddScan.bl_idname, "scan_name")
 
 
-
-class VesuviusDownloadGridCells(bpy.types.Operator):
-	bl_idname = "object.vesuvius_download_grid_cells"
-	bl_label = "Download grid cells"
-
+class VesuviusCellOperator:
 	def execute(self, context):
-		if not get_data_dir().is_dir():
+		if not get_data_dir():
 			self.report({"ERROR"}, "Vesuvius data directory not found.")
 			return {"CANCELLED"}
 
@@ -134,13 +148,41 @@ class VesuviusDownloadGridCells(bpy.types.Operator):
 			return {"CANCELLED"}
 
 		cell = world_to_grid(cursor_p)
+		return self.execute_with_cell(context, scan, cell)
 
-		cell_path = scan.grid_cell_path(*cell)
-		self.report({"INFO"}, f"Requested {cell_path}.")
-		download_file_start(scan, cell_path, context)
 
-		# TODO: Set the material's MinJ and MaxJ.
+class VesuviusAddGridCell(bpy.types.Operator, VesuviusCellOperator):
+	bl_idname = "object.vesuvius_add_grid_cell"
+	bl_label = "Grid cell"
+
+	def execute_with_cell(self, context, scan, cell):
 		self.report({"INFO"}, f"Cell: {cell}.")
+		material = bpy.data.materials.get(f"vesuvius_volpkg_{scan.vol_id}")
+		create_cell_quads(cell, material)
+		return {"FINISHED"}
+
+
+class VesuviusDownloadGridCells(bpy.types.Operator, VesuviusCellOperator):
+	bl_idname = "object.vesuvius_download_grid_cells"
+	bl_label = "Download grid cells"
+
+	def execute_with_cell(self, context, scan, cell):
+		cell_path = scan.grid_cell_path(*cell)
+		download_file_start(scan, cell_path, context)
+		self.report({"INFO"}, f"Cell: {cell}.")
+		return {"FINISHED"}
+
+
+class VesuviusReloadShader(bpy.types.Operator):
+	bl_idname = "object.vesuvius_reload_shader"
+	bl_label = "Reload vesuvius shader"
+
+	def execute(self, context):
+		scan = get_current_scan()
+		if not scan:
+			self.report({"ERROR"}, "No current scan, add a Vesuvius Scan first.")
+			return {"CANCELLED"}
+		reload_shader(scan)
 		return {"FINISHED"}
 
 
@@ -159,12 +201,16 @@ def register():
 	bpy.utils.register_class(VesuviusPreferences)
 	bpy.utils.register_class(VesuviusAddScan)
 	bpy.types.VIEW3D_MT_add.append(menu_func)
+	bpy.utils.register_class(VesuviusAddGridCell)
 	bpy.utils.register_class(VesuviusDownloadGridCells)
+	bpy.utils.register_class(VesuviusReloadShader)
 
 
 def unregister():
 	bpy.utils.unregister_class(VesuviusPreferences)
 	bpy.utils.unregister_class(VesuviusAddScan)
 	bpy.types.VIEW3D_MT_add.remove(menu_func)
+	bpy.utils.unregister_class(VesuviusAddGridCell)
 	bpy.utils.unregister_class(VesuviusDownloadGridCells)
+	bpy.utils.unregister_class(VesuviusReloadShader)
 
