@@ -11,14 +11,14 @@ def get_current_scan():
 	global _current_scan
 	if _current_scan:
 		return _current_scan
-	vol_id = ""
+	vol_ids = []
 	for mat in bpy.data.materials:
 		if mat.name.startswith("vesuvius_volpkg_"):
-			vol_id = mat.name.removeprefix("vesuvius_volpkg_")
-	if not vol_id:
+			vol_ids.append(mat.name.removeprefix("vesuvius_volpkg_"))
+	if len(vol_ids) == 0:
 		return None
 	for scan in SCANS.values():
-		if scan.vol_id == vol_id:
+		if scan.vol_id in vol_ids:
 			_current_scan = scan
 			return scan
 
@@ -64,10 +64,15 @@ def reload_shader(scan):
 	script_text.from_string(generate_shader(scan))
 
 
+def create_axis_planes(px, py, pz, dx, dy, dz, material, name="Plane"):
+	plane_xy = create_quad((px, py, pz), (px + dx, py, pz), (px + dx, py + dy, pz), (px, py + dy, pz), f"{name}__XY")
+	plane_xy.data.materials.append(material)
+	return plane_xy
+
 def create_axis_quads(px, py, pz, dx, dy, dz, material, name="Plane"):
-	plane_xy = create_quad((px, py, pz), (px + dx, py, pz), (px + dx, py + dy, pz), (px, py + dy, pz), f"{name}XY")
-	plane_yz = create_quad((px, py, pz), (px, py + dy, pz), (px, py + dy, pz + dz), (px, py, pz + dz), f"{name}YZ")
-	plane_zx = create_quad((px, py, pz), (px, py, pz + dz), (px + dx, py, pz + dz), (px + dx, py, pz), f"{name}ZX")
+	plane_xy = create_quad((px, py, pz), (px + dx, py, pz), (px + dx, py + dy, pz), (px, py + dy, pz), f"{name}__XY")
+	plane_yz = create_quad((px, py, pz), (px, py + dy, pz), (px, py + dy, pz + dz), (px, py, pz + dz), f"{name}__YZ")
+	plane_zx = create_quad((px, py, pz), (px, py, pz + dz), (px + dx, py, pz + dz), (px + dx, py, pz), f"{name}__ZX")
 	plane_xy.data.materials.append(material)
 	plane_yz.data.materials.append(material)
 	plane_zx.data.materials.append(material)
@@ -81,9 +86,25 @@ def create_scan_quads(scan, material):
 	plane_zx.location.y += dy/2
 
 
+def cell_name(cell):
+	jx0, jy0, jz0 = cell
+	jx, jy, jz = jx0+1, jy0+1, jz0+1
+	return f"Cell_yxz_{jy:03}_{jx:03}_{jz:03}___{jx0:02}_{jy0:02}_{jz0:02}"
+
 def create_cell_quads(cell, material):
-	name=f"Cell_{cell[0]:02}_{cell[1]:02}_{cell[2]:02}"
+	name = cell_name(cell)
 	create_axis_quads(5*cell[0], 5*cell[1], 5*cell[2], 5, 5, 5, material, name=name)
+
+def create_cell_planes(cell, material):
+	name = cell_name(cell)
+	create_axis_planes(5*cell[0], 5*cell[1], 5*cell[2], 5, 5, 5, material, name=name)
+
+# NOTE: Harcoded material for scroll 1.
+def add_grid_cells(cells):
+	material = bpy.data.materials.get(f"vesuvius_volpkg_20230205180739")
+	for cell in cells:
+		create_cell_planes(cell, material)
+
 
 
 class VesuviusAddScan(bpy.types.Operator):
