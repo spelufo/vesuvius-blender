@@ -3,6 +3,7 @@ import bpy, bmesh
 from .data import *
 from .shaders import *
 from .utils import *
+from .raycast_sort import *
 
 ADDON_ID = "vesuvius"
 
@@ -177,9 +178,23 @@ class VesuviusAddGridCell(bpy.types.Operator, VesuviusCellOperator):
 	bl_label = "Grid cell"
 
 	def execute_with_cell(self, context, scan, cell):
-		self.report({"INFO"}, f"Cell: {cell}.")
+		cell_name = scan.grid_cell_name(*cell)
+		self.report({"INFO"}, f"{cell_name}  {cell}.")
 		material = bpy.data.materials.get(f"vesuvius_volpkg_{scan.vol_id}")
-		create_cell_quads(cell, material)
+		activate_collection(cell_name)
+		# create_cell_quads(cell, material)
+		return {"FINISHED"}
+
+class VesuviusFocusGridCell(bpy.types.Operator, VesuviusCellOperator):
+	bl_idname = "object.vesuvius_focus_grid_cell"
+	bl_label = "Focus grid cell"
+
+	def execute_with_cell(self, context, scan, cell):
+		self.report({"INFO"}, cell_name(cell))
+		material = bpy.data.materials.get(f"vesuvius_volpkg_{scan.vol_id}")
+		s = material.node_tree.nodes["Script"]
+		s.inputs["MinJ"].default_value = cell
+		s.inputs["MaxJ"].default_value = (cell[0]+1, cell[1]+1, cell[2]+1)
 		return {"FINISHED"}
 
 
@@ -191,6 +206,28 @@ class VesuviusDownloadGridCells(bpy.types.Operator, VesuviusCellOperator):
 		cell_path = scan.grid_cell_path(*cell)
 		download_file_start(scan, cell_path, context)
 		self.report({"INFO"}, f"Cell: {cell}.")
+		return {"FINISHED"}
+
+
+class VesuviusImportCellHoles(bpy.types.Operator, VesuviusCellOperator):
+	bl_idname = "object.vesuvius_import_cell_holes"
+	bl_label = "Import cell holes"
+
+	def execute_with_cell(self, context, scan, cell):
+		activate_collection(scan.grid_cell_name(*cell))
+		holes_dir = scan.grid_cell_holes_dir(*cell)
+		for filename in os.listdir(holes_dir):
+			if not filename.endswith(".stl"):
+				continue
+			filepath = f"{holes_dir}/{filename}"
+			bpy.ops.wm.stl_import(
+				filepath=filepath,
+				directory=str(holes_dir),
+				files=[{"name": filename}],
+				global_scale=0.01,
+				forward_axis='Y',
+				up_axis='Z'
+			)
 		return {"FINISHED"}
 
 
@@ -223,8 +260,11 @@ def register():
 	bpy.utils.register_class(VesuviusAddScan)
 	bpy.types.VIEW3D_MT_add.append(menu_func)
 	bpy.utils.register_class(VesuviusAddGridCell)
+	bpy.utils.register_class(VesuviusFocusGridCell)
 	bpy.utils.register_class(VesuviusDownloadGridCells)
+	bpy.utils.register_class(VesuviusImportCellHoles)
 	bpy.utils.register_class(VesuviusReloadShader)
+	bpy.utils.register_class(VesuviusRaycastSort)
 
 
 def unregister():
@@ -232,6 +272,9 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusAddScan)
 	bpy.types.VIEW3D_MT_add.remove(menu_func)
 	bpy.utils.unregister_class(VesuviusAddGridCell)
+	bpy.utils.unregister_class(VesuviusFocusGridCell)
+	bpy.utils.unregister_class(VesuviusImportCellHoles)
 	bpy.utils.unregister_class(VesuviusDownloadGridCells)
 	bpy.utils.unregister_class(VesuviusReloadShader)
+	bpy.utils.unregister_class(VesuviusRaycastSort)
 

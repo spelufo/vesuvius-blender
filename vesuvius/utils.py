@@ -2,6 +2,27 @@ import bpy
 import bmesh
 
 
+def collect_objects_by_cell():
+	cell_prefix = "cell_yxz_"
+	for obj in bpy.data.objects:
+		if not obj.name.startswith(cell_prefix):
+			continue
+		cell_collection_name = obj.name[:len("cell_yxz_YYY_XXX_ZZZ")]
+		cell_collection = activate_collection(cell_collection_name)
+		if cell_collection not in obj.users_collection:
+			bpy.context.collection.objects.link(obj)
+
+
+def activate_collection(name):
+	if name in bpy.data.collections:
+		col = bpy.data.collections[name]
+	else:
+		col = bpy.data.collections.new(name)
+		bpy.context.scene.collection.children.link(col)
+	bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[col.name]
+	return col
+
+
 def get_or_create(collection, name):
 	o = collection.get(name)
 	if not o:
