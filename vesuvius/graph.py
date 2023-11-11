@@ -4,10 +4,12 @@ from collections import defaultdict
 
 
 class Graph:
-  def __init__(self, vertices, edges):
+  def __init__(self, vertices, edges, verts_meta=None, edges_meta=None):
     self.vertices = vertices
     self._from = defaultdict(list)
     self._into = defaultdict(list)
+    self.verts_meta = verts_meta or {}
+    self.edges_meta = edges_meta or {}
     for (v, w, m) in edges:
       assert v in vertices and w in vertices, "bad edge"
       self._from[v].append((w, m))
@@ -60,21 +62,31 @@ class Graph:
   def __str__(self):
     s = "digraph {\n"
     for v in self.vertices:
-      s += f"  \"{v}\";\n"
+      vdir = self.verts_meta.get(v)
+      attrs = ""
+      if vdir == "A":
+        attrs = " [color=\"blue\"]"
+      if vdir == "B":
+        attrs = " [color=\"orange\"]"
+      s += f"  \"{v}\"{attrs};\n"
     for v in self._from:
       for w, m in self._from[v]:
-        s += f"  \"{v}\" -> \"{w}\" [weight={m:0}, label=\"{m}\"];\n"
+        d = self.edges_meta.get((v, w), 1000)
+        s += f"  \"{v}\" -> \"{w}\" [weight={m:.0f}, label=\"{m:.0f}|{d:.2f}\", len={d:.4f}];\n"
     s += "}\n"
     return s
 
   def vis(self, path):
     with open(f"/tmp/{path}.dot", "w+") as f:
       print(str(self), file=f)
-    return subprocess.run(["dot", "-Tpng", f"{path}.dot", "-o", f"{path}.png"], cwd="/tmp")
+    # return subprocess.run(["dot", "-Tpng", f"{path}.dot", "-o", f"{path}.png"], cwd="/tmp")
+    return subprocess.run(["dot", "-Tsvg", f"{path}.dot", "-o", f"{path}.svg"], cwd="/tmp")
 
-
+# https://www.youtube.com/watch?v=Z0RGCWxvCxA
 def break_cycles(g: Graph):
   vertices = g.vertices.copy()
+  verts_meta = g.verts_meta
+  edges_meta = g.edges_meta
   edges = []
   edges_cut = []
   while len(g.vertices) > 0:
@@ -109,25 +121,48 @@ def break_cycles(g: Graph):
     edges_cut += g.edges_into(v_max)
     g.remove(v_max)
 
-  return Graph(vertices, edges), edges_cut
+  return Graph(vertices, edges, verts_meta=verts_meta,  edges_meta=edges_meta), edges_cut
 
+def topo_sorted(g):
+  topo = []
+  in_degree = {v: len(g._into[v]) for v in g.vertices}
+  queue = [v for v in g.vertices if in_degree[v] == 0]
+  while queue:
+    v = queue.pop(0)
+    topo.append(v)
+    for w, _ in g._from[v]:
+      in_degree[w] -= 1
+      if in_degree[w] == 0:
+        queue.append(w)
+  return topo
 
-def sort_by_distance_with_constraints(g, distances, delta=0.001):
-  levels = []
-  while g.vertices:
-    vs_available = g.sinks()
-    v = vs_available[0]
-    d = distances[v]
-    for w in vs_available:
-      if distances[w] < d:
-        d = distances[w]
-        v = w
-    level = [v]
-    g.remove(v)
-    for w in vs_available:
-      if w != v:
-        if distances[w] < distances[v] + delta:
-          level.append(w)
-          g.remove(w)
-    levels.append(level)
-  return levels
+def topo_sorted_by_distance(g, source):
+  topo = topo_sorted(g)
+  distances = {v: float('inf') for v in g.vertices}
+  distances[source] = 0
+  for v in topo:
+    for w, _ in g._from[v]:
+      dist = g.edges_meta[(v, w)] # TODO: edge_meta == distance is too sneaky, cleanup.
+      if distances[v] != float('inf') and distances[v] + dist < distances[w]:
+        distances[w] = distances[v] + dist
+  return [v for v, dist in sorted(distances.items(), key=lambda x: x[1])]
+
+# def sort_by_distance_with_constraints(g, distances, delta=0.001):
+#   levels = []
+#   while g.vertices:
+#     vs_available = g.sinks()
+#     v = vs_available[0]
+#     d = distances[v]
+#     for w in vs_available:
+#       if distances[w] < d:
+#         d = distances[w]
+#         v = w
+#     level = [v]
+#     g.remove(v)
+#     for w in vs_available:
+#       if w != v:
+#         if distances[w] < distances[v] + delta:
+#           level.append(w)
+#           g.remove(w)
+#     levels.append(level)
+#   return levels

@@ -6,11 +6,15 @@ from .graph import *
 
 # Hole Splitting ###############################################################
 
+# TODO: If this isn't good enough, try spectral graph partitioning.
+
 # Smaller values produce a lot more sheet faces, and will probably
 # worsen performance down the line. We could make this very big and
 # rely more on the potential to fill in, resulting in less accuracy.
 SPLIT_HOLES_MIN_POLYGONS = 24
 
+# TODO: We should do nice renaming as part of split holes, so it is easier to
+# grok what's going on later.
 def split_holes(ctx):
 	for hole in ctx.selected_objects:
 		print("Splitting hole", hole.name)
@@ -36,73 +40,91 @@ def delete_low_poly(min_polygons):
 
 # Hole Sorting #################################################################
 
-
-# TODO: Build the graph from each sheet face without going through objects.
+# This approach is fine as a starting point and hopefully it doesn't require
+# too much manual correction, but we might want to keep the graph of constraints
+# around and propagate user adjustments through it.
 
 def raycast_sort(ctx):
-		rv3d = find_view_3d(ctx)
-		view_matrix = rv3d.view_matrix.inverted()
-		camera_position = view_matrix.translation
-		cursor_position = ctx.scene.cursor.location
-		rays_dir = cursor_position - camera_position
-		rays_dir.normalize()
+	radial_dir = radial_direction(ctx)
+	sheet_faces = ctx.selected_objects
+	sheet_face_0 = ctx.active_object
+	print("Raycast sort from: ", ctx.active_object.name)
+	print("Raycast sort direction: ", radial_dir)
 
-		objects = ctx.selected_objects
-		sizes = {}
-		targets = []
-		for obj in objects:
-			n_verts = len(obj.data.vertices)
-			sizes[obj.name] = math.sqrt(n_verts)
-			n_targets = min(n_verts, 30)
-			for (i, v) in enumerate(obj.data.vertices):
-				jitter = Vector((random.random(), random.random(), random.random()))
-				jitter.normalize()
-				jitter *= 0.05
-				if n_targets > n_verts:
-					targets.append(obj.matrix_world @ v.co + jitter)
-				elif random.random() < n_targets/n_verts:
-					targets.append(obj.matrix_world @ v.co + jitter)
+	for sheet_face in sheet_faces:
+		n_sheet_face = object_average_normal(sheet_face)
+		sheet_face["sheet_face_direction"] = "A" if n_sheet_face.dot(radial_dir) < 0 else "B"
 
-		print("len(targets) ==", len(targets))
+	edge_weights = defaultdict(lambda: 0)
+	edge_distances = defaultdict(lambda: 1000)
+	depsgraph = ctx.evaluated_depsgraph_get()
+	for (i, sheet_face) in enumerate(sheet_faces):
+		print(f"Raycasting sheet face {i}/{len(sheet_faces)}...")
+		sheet_face_direction = sheet_face["sheet_face_direction"]
+		for (j, v) in enumerate(sheet_face.data.vertices):
+			# print(f"  vertex {i}/{len(sheet_face.data.vertices)}...")
+			p = sheet_face.matrix_world @ v.co
+			n = v.normal
+			if sheet_face_direction == "A":
+				n = -v.normal
+				# p += 0.001*n
+			hit, p_hit, _, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=10)
+			# assert obj_hit != sheet_face, "Hit self!" # TODO: remove this. I want to see if it happens systematically going into face.
+			# TODO: I think it is better to exclude A-A and B-B edges, but is it?
+			if hit and obj_hit.get("sheet_face_direction") != sheet_face_direction:
+				edge = (sheet_face.name, obj_hit.name)
+				edge_weights[edge] += 1
+				edge_distances[edge] = min(edge_distances[edge], (p_hit - p).length)
 
-		edges = defaultdict(float)
-		distances = defaultdict(float)
-		depsgraph = ctx.evaluated_depsgraph_get()
-		for i, tgt in enumerate(targets):
-			print(f"target {i+1}/{len(targets)}")
-			p = tgt - 10*rays_dir
-			v = rays_dir
-			d_total = 0.0
-			obj_hit_last = None
-			p_hit_last = None
-			for i in range(200):
-				hit, p_hit, n, _, obj, _ = ctx.scene.ray_cast(depsgraph, p, v)
-				if not hit:
-					break
-				# bpy.ops.object.empty_add(location = p_hit)
-				d_total += (p_hit - p).length + 0.01
-				p = p_hit + 0.01 * v
-				if obj in objects:
-					distances[obj.name] = max(distances[obj.name], d_total)
-					if obj_hit_last and obj != obj_hit_last:
-						edges[(obj_hit_last.name, obj.name)] = sizes[obj_hit_last.name] * sizes[obj.name]
-					obj_hit_last = obj
-					p_hit_last = p_hit
-		print("Done raycasting.")
+	print("Done raycasting.")
 
-		g = Graph([obj.name for obj in objects], [(v, w, m) for (v, w), m in edges.items()])
-		g.vis("holes")
-		ga, edges_cut = break_cycles(g)
-		ga.vis("holes_dag")
-		print("edges_cut", edges_cut)
-		levels = sort_by_distance_with_constraints(ga, distances)
+	g_verts = [sheet_face.name for sheet_face in sheet_faces]
+	g_edges = [(v, w, m) for (v, w), m in edge_weights.items()]
+	g_verts_meta = {sheet_face.name: sheet_face["sheet_face_direction"] for sheet_face in sheet_faces}
+	g_edges_meta = edge_distances
+	g = Graph(g_verts, g_edges, verts_meta=g_verts_meta, edges_meta=g_edges_meta)
+	g.vis("holes")
+	ga, edges_cut = break_cycles(g)
+	ga.vis("holes_dag")
 
-		for (i, lvl) in enumerate(levels):
-			for objname in lvl:
-				obj = next(obj for obj in objects if obj.name == objname)
-				if objname.startswith("l"):
-					objname = objname[4:]
-				obj.name = f"l{i:02}_{objname}"
+	print("edges_cut", edges_cut)
+
+	for i, sf_name in enumerate(topo_sorted_by_distance(ga, sheet_face_0.name)):
+		print(i, sf_name)
+		sf = next(sf for sf in sheet_faces if sf.name == sf_name)
+		if sf_name.startswith("l"):
+			sf_name = sf_name[4:]
+		sf.name = f"l{i:02}_{sf_name}"
+
+
+# TODO: This could be better in many ways. The main issue might be piercing
+# papyrus back to front if there are high freq turns on itself so that there's
+# no single radial direction that works for the whole cell. In that case we'd
+# need a more local approximation. Hoping it is not needed in most cases. As
+# long as the dot product of this approximation and the sheet normal is of the
+# true sign we'll be fine.
+# I've decided this is not a lot of work for a person to do on each cell, but
+# let's make that efficient and accurate. Using the camera-cursor direction is
+# one option. Another is using the two extremum objects: place the cursor on the
+# last one and make the first one the active one.
+def radial_direction(ctx):
+	# rv3d = find_view_3d(ctx)
+	# view_matrix = rv3d.view_matrix.inverted()
+	# p_from = view_matrix.translation
+	p_from = object_centroid(ctx.active_object)
+	p_to = ctx.scene.cursor.location
+	radial_dir = (p_to - p_from).normalized()
+	return radial_dir
+
+def object_centroid(obj):
+	mesh = obj.data
+	centroid = sum((v.co for v in mesh.vertices), Vector((0.0, 0.0, 0.0))) / len(mesh.vertices)
+	return obj.matrix_world @ centroid
+
+def object_average_normal(obj):
+	mesh = obj.data
+	n = sum((v.normal for v in mesh.vertices), Vector((0.0, 0.0, 0.0))) / len(mesh.vertices)
+	return n.normalized()
 
 def find_view_3d(ctx):
 	for area in ctx.screen.areas:
