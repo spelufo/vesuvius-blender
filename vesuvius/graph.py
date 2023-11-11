@@ -1,3 +1,4 @@
+import subprocess
 import math
 from collections import defaultdict
 
@@ -39,6 +40,13 @@ class Graph:
       if len(self._from[v]) == 0:
         return v
 
+  def sinks(self):
+    sinks = []
+    for v in self.vertices:
+      if len(self._from[v]) == 0:
+        sinks.append(v)
+    return sinks
+
   def source(self):
     for v in self.vertices:
       if len(self._into[v]) == 0:
@@ -49,8 +57,23 @@ class Graph:
       if len(self._from[v]) == 0 and len(self._into[v]) == 0:
         return v
 
+  def __str__(self):
+    s = "digraph {\n"
+    for v in self.vertices:
+      s += f"  \"{v}\";\n"
+    for v in self._from:
+      for w, m in self._from[v]:
+        s += f"  \"{v}\" -> \"{w}\" [weight={m:0}, label=\"{m}\"];\n"
+    s += "}\n"
+    return s
 
-def break_edges(g: Graph):
+  def vis(self, path):
+    with open(f"/tmp/{path}.dot", "w+") as f:
+      print(str(self), file=f)
+    return subprocess.run(["dot", "-Tpng", f"{path}.dot", "-o", f"{path}.png"], cwd="/tmp")
+
+
+def break_cycles(g: Graph):
   vertices = g.vertices.copy()
   edges = []
   edges_cut = []
@@ -88,3 +111,23 @@ def break_edges(g: Graph):
 
   return Graph(vertices, edges), edges_cut
 
+
+def sort_by_distance_with_constraints(g, distances, delta=0.001):
+  levels = []
+  while g.vertices:
+    vs_available = g.sinks()
+    v = vs_available[0]
+    d = distances[v]
+    for w in vs_available:
+      if distances[w] < d:
+        d = distances[w]
+        v = w
+    level = [v]
+    g.remove(v)
+    for w in vs_available:
+      if w != v:
+        if distances[w] < distances[v] + delta:
+          level.append(w)
+          g.remove(w)
+    levels.append(level)
+  return levels

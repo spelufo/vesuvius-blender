@@ -1,6 +1,8 @@
 import bpy
-import math
+import math, random
+from collections import defaultdict
 from mathutils import Vector
+from .graph import *
 
 
 class VesuviusRaycastSort(bpy.types.Operator):
@@ -15,21 +17,67 @@ class VesuviusRaycastSort(bpy.types.Operator):
 		cursor_position = scene.cursor.location
 		rays_dir = cursor_position - camera_position
 		rays_dir.normalize()
-		perp_e1 = rays_dir.cross(Vector((1,1,1)))
-		perp_e2 = perp_e1.cross(rays_dir)
-		g = {}
-		for ix in range(-32, 33):
-			for iy in range(-32, 33):
-				p = camera_position + (5/64)*(ix*perp_e1 + iy*perp_e2)
-				hit_objects = self.raycast(context, p, rays_dir)
-				for i in range(1, len(hit_objects)):
-					a = hit_objects[i-1]
-					b = hit_objects[i]
-					# add a -> b to the DAG g
+		# perp_e1 = rays_dir.cross(Vector((1,1,1)))
+		# perp_e2 = perp_e1.cross(rays_dir)
 
-		# bpy.ops.object.select_all(action='DESELECT')
-		# for obj in hit_objects:
-		# 	obj.select_set(True)
+
+		objects = context.selected_objects
+		sizes = {}
+		targets = []
+		for obj in objects:
+			n_verts = len(obj.data.vertices)
+			sizes[obj.name] = math.sqrt(n_verts)
+			n_targets = min(n_verts, 30)
+			for (i, v) in enumerate(obj.data.vertices):
+				jitter = Vector((random.random(), random.random(), random.random()))
+				jitter.normalize()
+				jitter *= 0.05
+				if n_targets > n_verts:
+					targets.append(obj.matrix_world @ v.co + jitter)
+				elif random.random() < n_targets/n_verts:
+					targets.append(obj.matrix_world @ v.co + jitter)
+
+		print("len(targets) ==", len(targets))
+
+		edges = defaultdict(float)
+		distances = defaultdict(float)
+		depsgraph = context.evaluated_depsgraph_get()
+		# targets = targets[:1]
+		for i, tgt in enumerate(targets):
+			print(f"target {i+1}/{len(targets)}")
+			p = tgt - 10*rays_dir
+			v = rays_dir
+			d_total = 0.0
+			obj_hit_last = None
+			p_hit_last = None
+			for i in range(200):
+				hit, p_hit, n, _, obj, _ = context.scene.ray_cast(depsgraph, p, v)
+				if not hit:
+					break
+				# bpy.ops.object.empty_add(location = p_hit)
+				d_total += (p_hit - p).length + 0.01
+				p = p_hit + 0.01 * v
+				if obj in objects:
+					distances[obj.name] = max(distances[obj.name], d_total)
+					if obj_hit_last and obj != obj_hit_last:
+						edges[(obj_hit_last.name, obj.name)] = sizes[obj_hit_last.name] * sizes[obj.name]
+					obj_hit_last = obj
+					p_hit_last = p_hit
+		print("Done raycasting.")
+
+		g = Graph([obj.name for obj in objects], [(v, w, m) for (v, w), m in edges.items()])
+		g.vis("holes")
+		ga, edges_cut = break_cycles(g)
+		ga.vis("holes_dag")
+		print("edges_cut", edges_cut)
+		levels = sort_by_distance_with_constraints(ga, distances)
+
+		for (i, lvl) in enumerate(levels):
+			for objname in lvl:
+				obj = next(obj for obj in objects if obj.name == objname)
+				if objname.startswith("l"):
+					objname = objname[4:]
+				obj.name = f"l{i:02}_{objname}"
 
 		return {"FINISHED"}
 

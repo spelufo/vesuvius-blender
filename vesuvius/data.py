@@ -85,6 +85,10 @@ SCANS = {
 		"fragments/Frag3.volpkg",      "20230215142309", 3.24, 54,  6312,  1440,  6656),
 	"fragment_3_88": HerculaneumScan(
 		"fragments/Frag3.volpkg",      "20230212182547", 3.24, 88,  6108,  1644,  6650),
+	"pherc_0332_53": HerculaneumScan(
+		"full-scrolls/PHerc0332.volpkg", "20231027191953", 3.24, 53, 9414, 9414, 22941),
+	"pherc_1667_88": HerculaneumScan(
+		"full-scrolls/PHerc1667.volpkg", "20231107190228", 3.24, 88, 8120, 7960, 26391),
 }
 
 
