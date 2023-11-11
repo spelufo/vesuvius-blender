@@ -122,6 +122,8 @@ class VesuviusAddScan(bpy.types.Operator):
 			"fragment_2_88",
 			"fragment_3_54",
 			"fragment_3_88",
+			"pherc_0332_53",
+			"pherc_1667_88",
 		]],
 		name="Scan",
 		description="Select the scan to add",
