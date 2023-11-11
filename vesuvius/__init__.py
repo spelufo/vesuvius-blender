@@ -7,7 +7,7 @@ bl_info = {
 
 if "vesuvius" not in locals():
 	from . import vesuvius
-	from . import raycast_sort
+	from . import segmentation
 	from . import graph
 	from . import shaders
 	from . import data
@@ -19,7 +19,7 @@ else:
 	importlib.reload(data)
 	importlib.reload(shaders)
 	importlib.reload(graph)
-	importlib.reload(raycast_sort)
+	importlib.reload(segmentation)
 	importlib.reload(vesuvius)
 
 

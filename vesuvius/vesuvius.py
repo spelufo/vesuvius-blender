@@ -3,7 +3,7 @@ import bpy, bmesh
 from .data import *
 from .shaders import *
 from .utils import *
-from .raycast_sort import *
+from .segmentation import *
 
 ADDON_ID = "vesuvius"
 
@@ -184,7 +184,7 @@ class VesuviusAddGridCell(bpy.types.Operator, VesuviusCellOperator):
 		self.report({"INFO"}, f"{cell_name}  {cell}.")
 		material = bpy.data.materials.get(f"vesuvius_volpkg_{scan.vol_id}")
 		activate_collection(cell_name)
-		# create_cell_quads(cell, material)
+		create_cell_quads(cell, material)
 		return {"FINISHED"}
 
 class VesuviusFocusGridCell(bpy.types.Operator, VesuviusCellOperator):
@@ -246,6 +246,19 @@ class VesuviusReloadShader(bpy.types.Operator):
 		return {"FINISHED"}
 
 
+class VesuviusRaycastSort(bpy.types.Operator):
+	bl_idname = "object.vesuvius_raycast_sort"
+	bl_label = "Raycast sort"
+	def execute(self, context):
+		return raycast_sort(context) or {"FINISHED"}
+
+class VesuviusSplitHoles(bpy.types.Operator):
+	bl_idname = "object.vesuvius_split_holes"
+	bl_label = "Split holes"
+	def execute(self, context):
+		return split_holes(context) or {"FINISHED"}
+
+
 class VesuviusPreferences(bpy.types.AddonPreferences):
 	bl_idname = ADDON_ID
 	data_dir: bpy.props.StringProperty(
@@ -267,6 +280,7 @@ def register():
 	bpy.utils.register_class(VesuviusImportCellHoles)
 	bpy.utils.register_class(VesuviusReloadShader)
 	bpy.utils.register_class(VesuviusRaycastSort)
+	bpy.utils.register_class(VesuviusSplitHoles)
 
 
 def unregister():
@@ -279,4 +293,5 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusDownloadGridCells)
 	bpy.utils.unregister_class(VesuviusReloadShader)
 	bpy.utils.unregister_class(VesuviusRaycastSort)
+	bpy.utils.unregister_class(VesuviusSplitHoles)
 
