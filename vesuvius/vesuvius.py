@@ -92,6 +92,9 @@ def cell_name(cell):
 	jx, jy, jz = jx0+1, jy0+1, jz0+1
 	return f"Cell_yxz_{jy:03}_{jx:03}_{jz:03}___{jx0:02}_{jy0:02}_{jz0:02}"
 
+def cell_from_name(objname):
+	return tuple(int(x) for x in objname[-12:-4].split("_"))
+
 def create_cell_quads(cell, material):
 	name = cell_name(cell)
 	create_axis_quads(5*cell[0], 5*cell[1], 5*cell[2], 5, 5, 5, material, name=name)
@@ -211,26 +214,44 @@ class VesuviusDownloadGridCells(bpy.types.Operator, VesuviusCellOperator):
 		return {"FINISHED"}
 
 
+
+def import_cell_holes(ctx, scan, cell):
+	activate_collection(scan.grid_cell_name(*cell))
+	holes_dir = scan.grid_cell_holes_dir(*cell)
+	for filename in os.listdir(holes_dir):
+		if not filename.endswith(".stl"):
+			continue
+		filepath = f"{holes_dir}/{filename}"
+		bpy.ops.wm.stl_import(
+			filepath=filepath,
+			directory=str(holes_dir),
+			files=[{"name": filename}],
+			global_scale=0.01,
+			forward_axis='Y',
+			up_axis='Z'
+		)
+
 class VesuviusImportCellHoles(bpy.types.Operator, VesuviusCellOperator):
 	bl_idname = "object.vesuvius_import_cell_holes"
 	bl_label = "Import cell holes"
-
 	def execute_with_cell(self, context, scan, cell):
-		activate_collection(scan.grid_cell_name(*cell))
-		holes_dir = scan.grid_cell_holes_dir(*cell)
-		for filename in os.listdir(holes_dir):
-			if not filename.endswith(".stl"):
-				continue
-			filepath = f"{holes_dir}/{filename}"
-			bpy.ops.wm.stl_import(
-				filepath=filepath,
-				directory=str(holes_dir),
-				files=[{"name": filename}],
-				global_scale=0.01,
-				forward_axis='Y',
-				up_axis='Z'
-			)
-		return {"FINISHED"}
+		return import_cell_holes(context, scan, cell) or {"FINISHED"}
+
+def import_layer_holes(ctx, scan, jz):
+	cells = []
+	for obj in bpy.data.objects:
+		if obj.name.startswith("Cell_yxz_") and obj.name.endswith(f"{jz:02d}__XY"):
+			cells.append(cell_from_name(obj.name))
+	for cell in cells:
+		print(f"Importing holes for cell {cell}...")
+		import_cell_holes(ctx, scan, cell)
+
+class VesuviusImportLayerHoles(bpy.types.Operator, VesuviusCellOperator):
+	bl_idname = "object.vesuvius_import_layer_holes"
+	bl_label = "Import layer holes"
+	def execute_with_cell(self, context, scan, cell):
+		_, _, jz = cell
+		return import_layer_holes(context, scan, jz) or {"FINISHED"}
 
 
 class VesuviusReloadShader(bpy.types.Operator):
@@ -258,6 +279,18 @@ class VesuviusSplitHoles(bpy.types.Operator):
 	def execute(self, context):
 		return split_holes(context) or {"FINISHED"}
 
+class VesuviusSelectA(bpy.types.Operator):
+	bl_idname = "object.vesuvius_select_a"
+	bl_label = "Select A (recto)"
+	def execute(self, context):
+		return filter_selected_sheet_face(context, "A") or {"FINISHED"}
+
+class VesuviusSelectB(bpy.types.Operator):
+	bl_idname = "object.vesuvius_select_b"
+	bl_label = "Select B (verso)"
+	def execute(self, context):
+		return filter_selected_sheet_face(context, "B") or {"FINISHED"}
+
 
 class VesuviusPreferences(bpy.types.AddonPreferences):
 	bl_idname = ADDON_ID
@@ -278,9 +311,12 @@ def register():
 	bpy.utils.register_class(VesuviusFocusGridCell)
 	bpy.utils.register_class(VesuviusDownloadGridCells)
 	bpy.utils.register_class(VesuviusImportCellHoles)
+	bpy.utils.register_class(VesuviusImportLayerHoles)
 	bpy.utils.register_class(VesuviusReloadShader)
 	bpy.utils.register_class(VesuviusRaycastSort)
 	bpy.utils.register_class(VesuviusSplitHoles)
+	bpy.utils.register_class(VesuviusSelectA)
+	bpy.utils.register_class(VesuviusSelectB)
 
 
 def unregister():
@@ -290,8 +326,11 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusAddGridCell)
 	bpy.utils.unregister_class(VesuviusFocusGridCell)
 	bpy.utils.unregister_class(VesuviusImportCellHoles)
+	bpy.utils.unregister_class(VesuviusImportLayerHoles)
 	bpy.utils.unregister_class(VesuviusDownloadGridCells)
 	bpy.utils.unregister_class(VesuviusReloadShader)
 	bpy.utils.unregister_class(VesuviusRaycastSort)
 	bpy.utils.unregister_class(VesuviusSplitHoles)
+	bpy.utils.unregister_class(VesuviusSelectA)
+	bpy.utils.unregister_class(VesuviusSelectB)
 

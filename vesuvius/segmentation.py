@@ -13,10 +13,11 @@ from .graph import *
 # rely more on the potential to fill in, resulting in less accuracy.
 SPLIT_HOLES_MIN_POLYGONS = 24
 
-# TODO: We should do nice renaming as part of split holes, so it is easier to
-# grok what's going on later.
-def split_holes(ctx):
-	for hole in ctx.selected_objects:
+def split_holes(ctx, holes=None):
+	holes = holes or ctx.selected_objects
+	for hole in holes:
+		if "." in hole.name: # Hole already split.
+			continue
 		print("Splitting hole", hole.name)
 		split_hole(hole)
 
@@ -24,18 +25,35 @@ def split_hole(hole):
 	bpy.ops.object.select_all(action='DESELECT')
 	bpy.context.view_layer.objects.active = hole
 	hole.select_set(True)
+	hole_name = hole.name
 	bpy.ops.object.editmode_toggle()
 	bpy.ops.mesh.edges_select_sharp(sharpness=0.698132)
 	bpy.ops.mesh.edge_split(type='EDGE')
 	bpy.ops.object.editmode_toggle()
 	bpy.ops.mesh.separate(type='LOOSE')
-	delete_selected_low_poly(SPLIT_HOLES_MIN_POLYGONS)
+	hole_sheets = delete_low_poly(SPLIT_HOLES_MIN_POLYGONS)
+	for i, hole_sheet in enumerate(hole_sheets):
+		hole_sheet.name = f"{hole_name}.{i:02d}"
+
 
 def delete_low_poly(min_polygons):
+	kept = []
 	for obj in bpy.context.selected_objects:
 		if len(obj.data.polygons) >= min_polygons:
+			kept.append(obj)
 			obj.select_set(False)
 	bpy.ops.object.delete(confirm=False, use_global=True)
+	return kept
+
+# def rename_split_holes(ctx, holes=None):
+# 	holes = holes or ctx.selected_objects
+# 	by_name = defaultdict(list)
+# 	for hole in holes:
+# 		name = hole.name.rsplit(".", maxsplit=1)[0]
+# 		by_name[name].append(hole)
+# 	for name, holes in by_name.items():
+# 		for i, hole in enumerate(holes):
+# 			hole.name = f"{name}.{i:02d}"
 
 
 # Hole Sorting #################################################################
@@ -92,9 +110,9 @@ def raycast_sort(ctx):
 	for i, sf_name in enumerate(topo_sorted_by_distance(ga, sheet_face_0.name)):
 		print(i, sf_name)
 		sf = next(sf for sf in sheet_faces if sf.name == sf_name)
-		if sf_name.startswith("l"):
+		if sf_name.startswith("s"):
 			sf_name = sf_name[4:]
-		sf.name = f"l{i:02}_{sf_name}"
+		sf.name = f"s{i:02}_{sf_name}"
 
 
 # TODO: This could be better in many ways. The main issue might be piercing
@@ -132,3 +150,9 @@ def find_view_3d(ctx):
 			space_data = area.spaces.active
 			return space_data.region_3d
 
+
+def filter_selected_sheet_face(ctx, face_direction="A"):
+	sheet_faces = ctx.selected_objects
+	for sheet_face in sheet_faces:
+		if sheet_face.get("sheet_face_direction") != face_direction:
+			sheet_face.select_set(False)
