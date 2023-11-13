@@ -14,12 +14,15 @@ from .graph import *
 SPLIT_HOLES_MIN_POLYGONS = 24
 
 def split_holes(ctx, holes=None):
+	n_split = 0
 	holes = holes or ctx.selected_objects
 	for hole in holes:
 		if "." in hole.name: # Hole already split.
 			continue
 		print("Splitting hole", hole.name)
 		split_hole(hole)
+		n_split += 1
+	return n_split
 
 def split_hole(hole):
 	bpy.ops.object.select_all(action='DESELECT')

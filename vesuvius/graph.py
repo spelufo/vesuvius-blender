@@ -59,6 +59,8 @@ class Graph:
       if len(self._from[v]) == 0 and len(self._into[v]) == 0:
         return v
 
+  # TODO: Would be nice to visualize edges broken by break_cycles with
+  # x -> y [constraint=false, color=red];
   def __str__(self):
     s = "digraph {\n"
     for v in self.vertices:
