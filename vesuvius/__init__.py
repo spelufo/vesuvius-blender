@@ -8,6 +8,7 @@ bl_info = {
 if "vesuvius" not in locals():
 	from . import vesuvius
 	from . import segmentation
+	from . import select_intersect_active
 	from . import graph
 	from . import shaders
 	from . import data
@@ -19,6 +20,7 @@ else:
 	importlib.reload(data)
 	importlib.reload(shaders)
 	importlib.reload(graph)
+	importlib.reload(select_intersect_active)
 	importlib.reload(segmentation)
 	importlib.reload(vesuvius)
 

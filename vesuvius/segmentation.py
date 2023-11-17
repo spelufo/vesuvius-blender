@@ -90,13 +90,19 @@ def raycast_sort(ctx):
 				n = -v.normal
 				# p += 0.001*n
 			hit, p_hit, _, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=10)
-			# assert obj_hit != sheet_face, "Hit self!" # TODO: remove this. I want to see if it happens systematically going into face.
-			# TODO: I think it is better to exclude A-A and B-B edges, but is it?
 			if hit and obj_hit.get("sheet_face_direction") != sheet_face_direction:
+				d = (p_hit - p).length
 				edge = (sheet_face.name, obj_hit.name)
-				edge_weights[edge] += 1
-				edge_distances[edge] = min(edge_distances[edge], (p_hit - p).length)
-
+				edge_weights[edge] += 1/d
+				edge_distances[edge] = min(edge_distances[edge], d)
+			# Same thing backwards: rationale is that small objects might be missed
+			# by rays shooting at them (but not from them).
+			hit, p_hit, _, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, -n, distance=10)
+			if hit and obj_hit.get("sheet_face_direction") != sheet_face_direction:
+				d = (p_hit - p).length
+				edge = (obj_hit.name, sheet_face.name)
+				edge_weights[edge] += 1/d
+				edge_distances[edge] = min(edge_distances[edge], d)
 	print("Done raycasting.")
 
 	g_verts = [sheet_face.name for sheet_face in sheet_faces]
@@ -159,3 +165,9 @@ def filter_selected_sheet_face(ctx, face_direction="A"):
 	for sheet_face in sheet_faces:
 		if sheet_face.get("sheet_face_direction") != face_direction:
 			sheet_face.select_set(False)
+
+
+
+
+# TODO: Raycast select from segment.
+

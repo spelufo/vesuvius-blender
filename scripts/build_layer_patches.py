@@ -1,18 +1,16 @@
-# Usage on server:
-# for z in $(seq 13 20); do
-#   tmux new -d -s "z${z}" "blender -b sheet_faces/faces_z${z}.blend --python vesuvius-blender/scripts/build_layer_hole_sheets.py";
+# Usage:
+# for z in $(seq -w 13 20); do
+#   tmux new -d -s "z${z}" "blender -b patches/patches_z${z}.blend --python vesuvius-blender/scripts/build_layer_patches.py"
 # done
 
 import gc, time
 import bpy
 import vesuvius.segmentation
+import vesuvius.utils
 
 
 def main():
-  cell_collections = []
-  for col in bpy.data.collections:
-    if col.name.startswith("cell_yxz_") and len(col.name) == len("cell_yxz_000_000_000"):
-      cell_collections.append(col)
+  cell_collections = vesuvius.utils.get_cell_collections()
 
   t0 = time.time()
   n_collections = len(cell_collections)

@@ -4,6 +4,7 @@ from .data import *
 from .shaders import *
 from .utils import *
 from .segmentation import *
+from .select_intersect_active import *
 
 ADDON_ID = "vesuvius"
 
@@ -109,8 +110,6 @@ def add_grid_cells(cells):
 	for cell in cells:
 		create_cell_planes(cell, material)
 
-
-
 class VesuviusAddScan(bpy.types.Operator):
 	bl_idname = "object.vesuvius_add_scan"
 	bl_label = "Vesuvius Scan"
@@ -150,8 +149,7 @@ class VesuviusAddScan(bpy.types.Operator):
 		create_scan_quads(scan, material)
 		return {"FINISHED"}
 
-
-def menu_func(self, context):
+def vesuvius_add_menu_func(self, context):
 	self.layout.operator_menu_enum(VesuviusAddScan.bl_idname, "scan_name")
 
 
@@ -291,6 +289,17 @@ class VesuviusSelectB(bpy.types.Operator):
 	def execute(self, context):
 		return filter_selected_sheet_face(context, "B") or {"FINISHED"}
 
+def hide_small_objects(ctx):
+	for o in ctx.selected_objects:
+		if len(o.data.vertices) < 1000:
+			o.hide_set(True)
+
+class VesuviusHideSmall(bpy.types.Operator):
+	bl_idname = "object.vesuvius_hide_small"
+	bl_label = "Hide small objects"
+	def execute(self, context):
+		return hide_small_objects(context) or {"FINISHED"}
+
 
 class VesuviusPreferences(bpy.types.AddonPreferences):
 	bl_idname = ADDON_ID
@@ -302,11 +311,10 @@ class VesuviusPreferences(bpy.types.AddonPreferences):
 	def draw(self, context):
 		self.layout.prop(self, "data_dir")
 
-
 def register():
 	bpy.utils.register_class(VesuviusPreferences)
 	bpy.utils.register_class(VesuviusAddScan)
-	bpy.types.VIEW3D_MT_add.append(menu_func)
+	bpy.types.VIEW3D_MT_add.append(vesuvius_add_menu_func)
 	bpy.utils.register_class(VesuviusAddGridCell)
 	bpy.utils.register_class(VesuviusFocusGridCell)
 	bpy.utils.register_class(VesuviusDownloadGridCells)
@@ -317,12 +325,15 @@ def register():
 	bpy.utils.register_class(VesuviusSplitHoles)
 	bpy.utils.register_class(VesuviusSelectA)
 	bpy.utils.register_class(VesuviusSelectB)
+	bpy.utils.register_class(VesuviusHideSmall)
 
+	bpy.utils.register_class(SelectIntersectActive)
+	bpy.types.VIEW3D_MT_select_object.append(select_intersect_menu_func)
 
 def unregister():
 	bpy.utils.unregister_class(VesuviusPreferences)
 	bpy.utils.unregister_class(VesuviusAddScan)
-	bpy.types.VIEW3D_MT_add.remove(menu_func)
+	bpy.types.VIEW3D_MT_add.remove(vesuvius_add_menu_func)
 	bpy.utils.unregister_class(VesuviusAddGridCell)
 	bpy.utils.unregister_class(VesuviusFocusGridCell)
 	bpy.utils.unregister_class(VesuviusImportCellHoles)
@@ -333,4 +344,7 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusSplitHoles)
 	bpy.utils.unregister_class(VesuviusSelectA)
 	bpy.utils.unregister_class(VesuviusSelectB)
+	bpy.utils.unregister_class(VesuviusHideSmall)
 
+	bpy.utils.unregister_class(SelectIntersectActive)
+	bpy.types.VIEW3D_MT_select_object.remove(select_intersect_menu_func)

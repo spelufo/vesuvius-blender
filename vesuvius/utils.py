@@ -1,6 +1,12 @@
 import bpy
 import bmesh
 
+def get_cell_collections():
+	cell_collections = []
+	for col in bpy.data.collections:
+		if col.name.startswith("cell_yxz_") and len(col.name) == len("cell_yxz_000_000_000"):
+			cell_collections.append(col)
+	return cell_collections
 
 def collect_objects_by_cell():
 	cell_prefix = "cell_yxz_"
