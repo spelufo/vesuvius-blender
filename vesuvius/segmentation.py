@@ -5,14 +5,34 @@ from collections import defaultdict
 from mathutils import Vector
 from .graph import *
 
+# Smaller values produce a lot more sheet faces, and will probably
+# worsen performance down the line. We could make this very big and
+# rely more on the potential to fill in, resulting in less accuracy.
+SPLIT_HOLES_MIN_POLYGONS = 50
 
 # Hole Splitting: Nuke Backfaces Method ########################################
 
+# TODO: I could do this offline much faster with julia, but I didn't manage to
+# make the right mesh yet, the indexing seems to be off by one or sth...
+
 def nuke_backfaces(ctx):
-	o = ctx.scene.cursor.location
+	cz = ctx.scene.cursor.location.z
+	d = 1000000
+	o = None
+	core = ctx.scene.objects["Core"]
+	for v in core.data.vertices:
+		pv = core.matrix_world @ v.co
+		v_d = abs(pv.z - cz)
+		if v_d < d:
+			d = v_d
+			o = v.co
+	assert o is not None, "Didn't find core vertex."
+	ctx.scene.cursor.location = o
+
 	for obj in ctx.selected_objects:
 		if not obj.type == 'MESH':
 			continue
+		bpy.context.view_layer.objects.active = obj
 		bpy.ops.object.mode_set(mode='OBJECT')
 		mesh = obj.data
 		bm = bmesh.new()
@@ -29,16 +49,15 @@ def nuke_backfaces(ctx):
 		bm.free()
 		obj.data = mesh
 		bpy.ops.object.mode_set(mode='EDIT')
+		bpy.ops.object.mode_set(mode='OBJECT')
+
+	bpy.ops.mesh.separate(type='LOOSE')
+	delete_low_poly(SPLIT_HOLES_MIN_POLYGONS)
 
 
 # Hole Splitting: Separate at Creases Method ###################################
 
 # TODO: If this isn't good enough, try spectral graph partitioning.
-
-# Smaller values produce a lot more sheet faces, and will probably
-# worsen performance down the line. We could make this very big and
-# rely more on the potential to fill in, resulting in less accuracy.
-SPLIT_HOLES_MIN_POLYGONS = 24
 
 def split_holes(ctx, holes=None):
 	n_split = 0
@@ -66,14 +85,18 @@ def split_hole(hole):
 		hole_sheet.name = f"{hole_name}.{i:02d}"
 
 
-def delete_low_poly(min_polygons):
-	kept = []
+def deselect_high_poly(min_polygons):
+	high_poly = []
 	for obj in bpy.context.selected_objects:
 		if len(obj.data.polygons) >= min_polygons:
-			kept.append(obj)
+			high_poly.append(obj)
 			obj.select_set(False)
+	return high_poly
+
+def delete_low_poly(min_polygons):
+	high_poly = deselect_high_poly(min_polygons)
 	bpy.ops.object.delete(confirm=False, use_global=True)
-	return kept
+	return high_poly
 
 # def rename_split_holes(ctx, holes=None):
 # 	holes = holes or ctx.selected_objects

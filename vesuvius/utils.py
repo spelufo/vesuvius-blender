@@ -27,12 +27,13 @@ def collect_objects_by_cell():
 			bpy.context.collection.objects.link(obj)
 
 
-def activate_collection(name):
+def activate_collection(name, parent_collection=None):
 	if name in bpy.data.collections:
 		col = bpy.data.collections[name]
 	else:
 		col = bpy.data.collections.new(name)
-		bpy.context.scene.collection.children.link(col)
+		parent_col = parent_collection or bpy.context.scene.collection
+		parent_col.children.link(col)
 	bpy.context.view_layer.active_layer_collection = bpy.context.view_layer.layer_collection.children[col.name]
 	return col
 

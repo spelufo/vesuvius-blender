@@ -211,21 +211,23 @@ class VesuviusDownloadGridCells(bpy.types.Operator, VesuviusCellOperator):
 		self.report({"INFO"}, f"Cell: {cell}.")
 		return {"FINISHED"}
 
-def import_cell_holes(ctx, scan, cell):
-	activate_collection(scan.grid_cell_name(*cell))
+def import_cell_holes(ctx, scan, cell, parent_collection=None):
+	col = activate_collection(scan.grid_cell_name(*cell), parent_collection=parent_collection)
 	holes_dir = scan.grid_cell_holes_dir(*cell)
 	for filename in os.listdir(holes_dir):
 		if not filename.endswith(".stl"):
 			continue
 		import_stl(f"{holes_dir}/{filename}")
+	return col
 
-def import_cell_patches(ctx, scan, cell):
-	activate_collection(scan.grid_cell_name(*cell))
+def import_cell_patches(ctx, scan, cell, parent_collection=None):
+	col = activate_collection(scan.grid_cell_name(*cell), parent_collection=parent_collection)
 	patches_dir = scan.grid_cell_patches_dir(*cell)
 	for filename in os.listdir(patches_dir):
 		if not filename.endswith(".stl"):
 			continue
 		import_stl(f"{patches_dir}/{filename}")
+	return col
 
 class VesuviusImportCellHoles(bpy.types.Operator, VesuviusCellOperator):
 	bl_idname = "object.vesuvius_import_cell_holes"
@@ -241,9 +243,10 @@ def layer_cells(ctx, jz):
 	return cells
 
 def import_layer_holes(ctx, scan, jz):
+	holes_col = activate_collection(f"Holes_z{jz+1:02d}")
 	for cell in layer_cells(ctx, jz):
 		print(f"Importing holes for cell {cell}...")
-		import_cell_holes(ctx, scan, cell)
+		import_cell_holes(ctx, scan, cell, parent_collection=holes_col)
 
 class VesuviusImportLayerHoles(bpy.types.Operator, VesuviusCellOperator):
 	bl_idname = "object.vesuvius_import_layer_holes"
@@ -253,9 +256,10 @@ class VesuviusImportLayerHoles(bpy.types.Operator, VesuviusCellOperator):
 		return import_layer_holes(context, scan, jz) or {"FINISHED"}
 
 def import_layer_patches(ctx, scan, jz):
+	patches_col = activate_collection(f"Patches_z{jz+1:02d}")
 	for cell in layer_cells(ctx, jz):
 		print(f"Importing patches for cell {cell}...")
-		import_cell_patches(ctx, scan, cell)
+		import_cell_patches(ctx, scan, cell, parent_collection=patches_col)
 
 class VesuviusImportLayerPatches(bpy.types.Operator, VesuviusCellOperator):
 	bl_idname = "object.vesuvius_import_layer_patches"
