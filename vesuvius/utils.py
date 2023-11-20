@@ -1,6 +1,14 @@
 import bpy
 import bmesh
 
+def import_stl(filepath):
+	bpy.ops.wm.stl_import(
+		filepath=filepath,
+		global_scale=0.01,
+		forward_axis='Y',
+		up_axis='Z'
+	)
+
 def get_cell_collections():
 	cell_collections = []
 	for col in bpy.data.collections:

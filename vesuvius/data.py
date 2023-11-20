@@ -65,6 +65,8 @@ class HerculaneumScan:
 	def grid_cell_holes_dir(self, jx, jy, jz):
 		return self.filepath(f"segmentation/{self.grid_cell_name(jx,jy,jz)}/holes")
 
+	def grid_cell_patches_dir(self, jx, jy, jz):
+		return self.filepath(f"segmentation/{self.grid_cell_name(jx,jy,jz)}/patches")
 
 SCANS = {
 	"scroll_1_54": HerculaneumScan(

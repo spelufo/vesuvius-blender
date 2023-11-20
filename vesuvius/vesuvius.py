@@ -211,23 +211,21 @@ class VesuviusDownloadGridCells(bpy.types.Operator, VesuviusCellOperator):
 		self.report({"INFO"}, f"Cell: {cell}.")
 		return {"FINISHED"}
 
-
-
 def import_cell_holes(ctx, scan, cell):
 	activate_collection(scan.grid_cell_name(*cell))
 	holes_dir = scan.grid_cell_holes_dir(*cell)
 	for filename in os.listdir(holes_dir):
 		if not filename.endswith(".stl"):
 			continue
-		filepath = f"{holes_dir}/{filename}"
-		bpy.ops.wm.stl_import(
-			filepath=filepath,
-			directory=str(holes_dir),
-			files=[{"name": filename}],
-			global_scale=0.01,
-			forward_axis='Y',
-			up_axis='Z'
-		)
+		import_stl(f"{holes_dir}/{filename}")
+
+def import_cell_patches(ctx, scan, cell):
+	activate_collection(scan.grid_cell_name(*cell))
+	patches_dir = scan.grid_cell_patches_dir(*cell)
+	for filename in os.listdir(patches_dir):
+		if not filename.endswith(".stl"):
+			continue
+		import_stl(f"{patches_dir}/{filename}")
 
 class VesuviusImportCellHoles(bpy.types.Operator, VesuviusCellOperator):
 	bl_idname = "object.vesuvius_import_cell_holes"
@@ -235,12 +233,15 @@ class VesuviusImportCellHoles(bpy.types.Operator, VesuviusCellOperator):
 	def execute_with_cell(self, context, scan, cell):
 		return import_cell_holes(context, scan, cell) or {"FINISHED"}
 
-def import_layer_holes(ctx, scan, jz):
+def layer_cells(ctx, jz):
 	cells = []
 	for obj in bpy.data.objects:
 		if obj.name.startswith("Cell_yxz_") and obj.name.endswith(f"{jz:02d}__XY"):
 			cells.append(cell_from_name(obj.name))
-	for cell in cells:
+	return cells
+
+def import_layer_holes(ctx, scan, jz):
+	for cell in layer_cells(ctx, jz):
 		print(f"Importing holes for cell {cell}...")
 		import_cell_holes(ctx, scan, cell)
 
@@ -251,6 +252,17 @@ class VesuviusImportLayerHoles(bpy.types.Operator, VesuviusCellOperator):
 		_, _, jz = cell
 		return import_layer_holes(context, scan, jz) or {"FINISHED"}
 
+def import_layer_patches(ctx, scan, jz):
+	for cell in layer_cells(ctx, jz):
+		print(f"Importing patches for cell {cell}...")
+		import_cell_patches(ctx, scan, cell)
+
+class VesuviusImportLayerPatches(bpy.types.Operator, VesuviusCellOperator):
+	bl_idname = "object.vesuvius_import_layer_patches"
+	bl_label = "Import layer patches"
+	def execute_with_cell(self, context, scan, cell):
+		_, _, jz = cell
+		return import_layer_patches(context, scan, jz) or {"FINISHED"}
 
 class VesuviusReloadShader(bpy.types.Operator):
 	bl_idname = "object.vesuvius_reload_shader"
@@ -270,6 +282,32 @@ class VesuviusRaycastSort(bpy.types.Operator):
 	bl_label = "Raycast sort"
 	def execute(self, context):
 		return raycast_sort(context) or {"FINISHED"}
+
+class VesuviusSelectClosestByRaycast(bpy.types.Operator):
+	bl_idname = "object.vesuvius_select_closest_by_raycast"
+	bl_label = "Select closest by raycast"
+	def execute(self, context):
+		if not context.selected_objects:
+			self.report({"ERROR"}, "No selected object.")
+			return {"CANCELLED"}
+		segment = context.selected_objects[0]
+		return select_closest_by_raycast(context, segment) or {"FINISHED"}
+
+class VesuviusHideNotDirectlySeenFrom(bpy.types.Operator):
+	bl_idname = "object.vesuvius_hide_not_directly_seen_from"
+	bl_label = "Hide not directly seen from"
+	def execute(self, context):
+		if not context.selected_objects:
+			self.report({"ERROR"}, "No selected object.")
+			return {"CANCELLED"}
+		segment = context.selected_objects[0]
+		return hide_not_directly_seen_from(context, segment) or {"FINISHED"}
+
+class VesuviusNukeBackfaces(bpy.types.Operator):
+	bl_idname = "object.vesuvius_nuke_backfaces"
+	bl_label = "Nuke backfaces"
+	def execute(self, context):
+		return nuke_backfaces(context) or {"FINISHED"}
 
 class VesuviusSplitHoles(bpy.types.Operator):
 	bl_idname = "object.vesuvius_split_holes"
@@ -320,8 +358,12 @@ def register():
 	bpy.utils.register_class(VesuviusDownloadGridCells)
 	bpy.utils.register_class(VesuviusImportCellHoles)
 	bpy.utils.register_class(VesuviusImportLayerHoles)
+	bpy.utils.register_class(VesuviusImportLayerPatches)
 	bpy.utils.register_class(VesuviusReloadShader)
 	bpy.utils.register_class(VesuviusRaycastSort)
+	bpy.utils.register_class(VesuviusSelectClosestByRaycast)
+	bpy.utils.register_class(VesuviusHideNotDirectlySeenFrom)
+	bpy.utils.register_class(VesuviusNukeBackfaces)
 	bpy.utils.register_class(VesuviusSplitHoles)
 	bpy.utils.register_class(VesuviusSelectA)
 	bpy.utils.register_class(VesuviusSelectB)
@@ -338,9 +380,13 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusFocusGridCell)
 	bpy.utils.unregister_class(VesuviusImportCellHoles)
 	bpy.utils.unregister_class(VesuviusImportLayerHoles)
+	bpy.utils.unregister_class(VesuviusImportLayerPatches)
 	bpy.utils.unregister_class(VesuviusDownloadGridCells)
 	bpy.utils.unregister_class(VesuviusReloadShader)
 	bpy.utils.unregister_class(VesuviusRaycastSort)
+	bpy.utils.unregister_class(VesuviusSelectClosestByRaycast)
+	bpy.utils.unregister_class(VesuviusHideNotDirectlySeenFrom)
+	bpy.utils.unregister_class(VesuviusNukeBackfaces)
 	bpy.utils.unregister_class(VesuviusSplitHoles)
 	bpy.utils.unregister_class(VesuviusSelectA)
 	bpy.utils.unregister_class(VesuviusSelectB)

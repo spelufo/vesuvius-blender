@@ -1,10 +1,37 @@
 import bpy
+import bmesh
 import math, random
 from collections import defaultdict
 from mathutils import Vector
 from .graph import *
 
-# Hole Splitting ###############################################################
+
+# Hole Splitting: Nuke Backfaces Method ########################################
+
+def nuke_backfaces(ctx):
+	o = ctx.scene.cursor.location
+	for obj in ctx.selected_objects:
+		if not obj.type == 'MESH':
+			continue
+		bpy.ops.object.mode_set(mode='OBJECT')
+		mesh = obj.data
+		bm = bmesh.new()
+		bm.from_mesh(mesh)
+		faces_to_delete = []
+		for face in bm.faces:
+			p = obj.matrix_world @ face.calc_center_median()
+			direction_to_cursor = (p - o).normalized()
+			face_normal = obj.matrix_world.to_3x3() @ face.normal
+			if face_normal.dot(direction_to_cursor) > 0:
+				faces_to_delete.append(face)
+		bmesh.ops.delete(bm, geom=faces_to_delete, context='FACES')
+		bm.to_mesh(mesh)
+		bm.free()
+		obj.data = mesh
+		bpy.ops.object.mode_set(mode='EDIT')
+
+
+# Hole Splitting: Separate at Creases Method ###################################
 
 # TODO: If this isn't good enough, try spectral graph partitioning.
 
@@ -64,6 +91,8 @@ def delete_low_poly(min_polygons):
 # This approach is fine as a starting point and hopefully it doesn't require
 # too much manual correction, but we might want to keep the graph of constraints
 # around and propagate user adjustments through it.
+
+# TODO: Rename "sheet_faces" to "patches".
 
 def raycast_sort(ctx):
 	radial_dir = radial_direction(ctx)
@@ -167,7 +196,67 @@ def filter_selected_sheet_face(ctx, face_direction="A"):
 			sheet_face.select_set(False)
 
 
+def select_closest_by_raycast(ctx, segment):
+	bpy.ops.object.select_all(action='DESELECT')
+	depsgraph = ctx.evaluated_depsgraph_get()
+	for v in segment.data.vertices:
+		p = segment.matrix_world @ v.co
+		n = v.normal
+		candidates = []
+		# forward
+		hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=1)
+		if hit and n.dot(n_hit) < 0:
+			obj_hit.hide_set(True)
+			hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=1)
+		if hit:
+			candidates.append(((p_hit - p).length, obj_hit))
+		# backward
+		hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, -n, distance=1)
+		if hit and n.dot(n_hit) < 0:
+			obj_hit.hide_set(True)
+			hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, -n, distance=1)
+		if hit:
+			candidates.append(((p_hit - p).length, obj_hit))
+		d_min = 9000
+		closest_obj = None
+		for (d, obj) in candidates:
+			if d < d_min:
+				d_min = d
+				closest_obj = obj
+		if closest_obj:
+			closest_obj.select_set(True)
 
 
-# TODO: Raycast select from segment.
+def hide_not_directly_seen_from(ctx, segment):
+	bpy.ops.object.select_all(action='DESELECT')
+	depsgraph = ctx.evaluated_depsgraph_get()
+	for v in segment.data.vertices:
+		# forward
+		p = segment.matrix_world @ v.co
+		n = v.normal
+		hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=0.2)
+		if hit and n.dot(n_hit) < 0:
+			obj_hit.hide_set(True)
+			hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=0.2)
+		p = p_hit + n*0.001
+		for i in range(5):
+			hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=0.2)
+			if not hit:
+				break
+			obj_hit.hide_set(True)
+			p = p_hit + n*0.001
 
+		# backward
+		p = segment.matrix_world @ v.co
+		n = -v.normal
+		hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=0.2)
+		if hit and n.dot(n_hit) > 0:
+			obj_hit.hide_set(True)
+			hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=0.2)
+		p = p_hit + n*0.001
+		for i in range(5):
+			hit, p_hit, n_hit, _, obj_hit, _ = ctx.scene.ray_cast(depsgraph, p, n, distance=0.2)
+			if not hit:
+				break
+			obj_hit.hide_set(True)
+			p = p_hit + n*0.001
