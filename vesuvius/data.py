@@ -47,8 +47,11 @@ class HerculaneumScan:
 	def small_volume_url(self):
 		return self.url(self.small_volume_path)
 
+	def grid_cell_name(self, jx, jy, jz):
+		return f"cell_yxz_{jy+1:03}_{jx+1:03}_{jz+1:03}"
+
 	def grid_cell_filename(self, jx, jy, jz):
-		return f"cell_yxz_{jy+1:03}_{jx+1:03}_{jz+1:03}.tif"
+		return f"{self.grid_cell_name(jx, jy, jz)}.tif"
 
 	def grid_cell_path(self, jx, jy, jz):
 		return f"volume_grids/{self.vol_id}/{self.grid_cell_filename(jx, jy, jz)}"
@@ -59,6 +62,11 @@ class HerculaneumScan:
 	def grid_cell_url(self, jx, jy, jz):
 		return self.url(self.grid_cell_path(jx, jy, jz))
 
+	def grid_cell_holes_dir(self, jx, jy, jz):
+		return self.filepath(f"segmentation/{self.grid_cell_name(jx,jy,jz)}/holes")
+
+	def grid_cell_patches_dir(self, jx, jy, jz):
+		return self.filepath(f"segmentation/{self.grid_cell_name(jx,jy,jz)}/patches")
 
 SCANS = {
 	"scroll_1_54": HerculaneumScan(

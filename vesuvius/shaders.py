@@ -16,6 +16,7 @@ float texture3d_fixed_up(string path, point ptex, float zres) {
 
 float sample_scan(Scan scan, point p) {
 	float celldim = 5;
+	p -= 0.02; // Not sure exactly why this is needed, but it is.
 	vector j = p / celldim;
 	if (j.x > scan.minj.x && j.x <= scan.maxj.x &&
 	    j.y > scan.minj.y && j.y <= scan.maxj.y &&

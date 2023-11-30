@@ -5,17 +5,28 @@ bl_info = {
 }
 
 
-if "bpy" not in locals():
+if "vesuvius" not in locals():
 	from . import vesuvius
+	from . import segmentation
+	from . import select_intersect_active
+	from . import radial_views
+	from . import graph
 	from . import shaders
 	from . import data
 	from . import utils
 else:
+	print("Reloading vesuvius...")
 	import importlib
 	importlib.reload(utils)
 	importlib.reload(data)
 	importlib.reload(shaders)
+	importlib.reload(graph)
+	importlib.reload(radial_views)
+	importlib.reload(select_intersect_active)
+	importlib.reload(segmentation)
 	importlib.reload(vesuvius)
+
+from . import radial_views
 
 
 def register():
