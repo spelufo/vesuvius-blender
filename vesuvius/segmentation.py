@@ -4,6 +4,7 @@ import math, random
 from collections import defaultdict
 from mathutils import Vector
 from .graph import *
+from .utils import *
 
 # Smaller values produce a lot more sheet faces, and will probably
 # worsen performance down the line. We could make this very big and
@@ -15,17 +16,9 @@ SPLIT_HOLES_MIN_POLYGONS = 50
 # TODO: I could do this offline much faster with julia, but I didn't manage to
 # make the right mesh yet, the indexing seems to be off by one or sth...
 
+
 def nuke_backfaces(ctx):
-	cz = ctx.scene.cursor.location.z
-	d = 1000000
-	o = None
-	core = ctx.scene.objects["Core"]
-	for v in core.data.vertices:
-		pv = core.matrix_world @ v.co
-		v_d = abs(pv.z - cz)
-		if v_d < d:
-			d = v_d
-			o = v.co
+	o, _ = find_core_point_for_cursor_layer()
 	assert o is not None, "Didn't find core vertex."
 	ctx.scene.cursor.location = o
 

@@ -5,6 +5,7 @@ from .shaders import *
 from .utils import *
 from .segmentation import *
 from .select_intersect_active import *
+from .radial_views import *
 
 ADDON_ID = "vesuvius"
 
@@ -233,7 +234,8 @@ class VesuviusImportCellHoles(bpy.types.Operator, VesuviusCellOperator):
 	bl_idname = "object.vesuvius_import_cell_holes"
 	bl_label = "Import cell holes"
 	def execute_with_cell(self, context, scan, cell):
-		return import_cell_holes(context, scan, cell) or {"FINISHED"}
+		import_cell_holes(context, scan, cell)
+		return {"FINISHED"}
 
 def layer_cells(ctx, jz):
 	cells = []
@@ -266,7 +268,8 @@ class VesuviusImportLayerPatches(bpy.types.Operator, VesuviusCellOperator):
 	bl_label = "Import layer patches"
 	def execute_with_cell(self, context, scan, cell):
 		_, _, jz = cell
-		return import_layer_patches(context, scan, jz) or {"FINISHED"}
+		import_layer_patches(context, scan, jz)
+		return {"FINISHED"}
 
 class VesuviusReloadShader(bpy.types.Operator):
 	bl_idname = "object.vesuvius_reload_shader"
@@ -342,6 +345,11 @@ class VesuviusHideSmall(bpy.types.Operator):
 	def execute(self, context):
 		return hide_small_objects(context) or {"FINISHED"}
 
+class VesuviusCreateCoreRadialCameras(bpy.types.Operator):
+	bl_idname = "object.vesuvius_create_core_radial_cameras"
+	bl_label = "Create core radial cameras"
+	def execute(self, context):
+		return create_core_radial_cameras(context) or {"FINISHED"}
 
 class VesuviusPreferences(bpy.types.AddonPreferences):
 	bl_idname = ADDON_ID
@@ -372,6 +380,7 @@ def register():
 	bpy.utils.register_class(VesuviusSelectA)
 	bpy.utils.register_class(VesuviusSelectB)
 	bpy.utils.register_class(VesuviusHideSmall)
+	bpy.utils.register_class(VesuviusCreateCoreRadialCameras)
 
 	bpy.utils.register_class(SelectIntersectActive)
 	bpy.types.VIEW3D_MT_select_object.append(select_intersect_menu_func)
@@ -395,6 +404,7 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusSelectA)
 	bpy.utils.unregister_class(VesuviusSelectB)
 	bpy.utils.unregister_class(VesuviusHideSmall)
+	bpy.utils.unregister_class(VesuviusCreateCoreRadialCameras)
 
 	bpy.utils.unregister_class(SelectIntersectActive)
 	bpy.types.VIEW3D_MT_select_object.remove(select_intersect_menu_func)
