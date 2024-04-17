@@ -26,14 +26,24 @@ Any geometry you model and assign this material will slice through the volumetri
 
 ### Install the addon.
 
-One way to do it is like this, for ease of development:
+To install the addon the `vesuvius` directory of this repo needs to be put in
+Blender's `addons` directory.
+
+My prefered way of doing it, for ease of development, is using a symlink:
 
 ```bash
 git clone https://github.com/spelufo/vesuvius-blender
 addon_dir="$(pwd)/vesuvius-blender/vesuvius"
-cd ~/.config/blender/*/scripts/addons/
+cd ~/.config/blender/*/scripts/addons/  # linux
+# cd ~/Library/Application\ Support/Blender/*/scripts/addons  # osx
 ln -s "$addon_dir"
 ```
+
+You can also do it within Blender. Go to `Edit > Preferences > Add-ons > Install add-on`
+and choose the `vesuvius` folder from where you've downloaded it.
+
+If something goes wrong, it helps to have started blender from a terminal,
+since errors and print statements from addons will be printed there.
 
 ### Enable and configure the data directory
 
@@ -120,20 +130,3 @@ render to finish.
 There's a hack in place using a curve node to adjust the intensity of the
 values from the textures, because for some reason they appear brighter in the
 middle z values, and darker towards the ends.
-
-Under linux and gnome it is not uncommon for the UI to take a few secconds to
-render, and if it takes too long gnome will pop up the force quit / wait dialog,
-which only makes the problem worse. The timeout can be increased with
-
-```bash
-gsettings set org.gnome.mutter check-alive-timeout 15000  # From 5000 (ms)
-```
-
-
-
-## TODO
-
-- [ ] Download and cache files from volpkg as needed.
-- [ ] Download and import segments (obj) from volpkg/paths/.
-- [ ] Read scan parameters from volpkg directories instead of hardcoding.
-- [ ] Move vertex along normal and bitangents?
