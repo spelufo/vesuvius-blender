@@ -3,6 +3,10 @@
 #   tmux new -d -s "z${z}" "blender -b patches/patches_z${z}.blend --python vesuvius-blender/scripts/build_layer_patches.py"
 # done
 
+for z in $(seq -w 1 26); do
+  tmux new -d -s "z${z}" ""
+done
+
 import gc, time
 import bpy
 import vesuvius.segmentation

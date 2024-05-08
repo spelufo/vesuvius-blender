@@ -155,9 +155,9 @@ def raycast_sort(ctx):
 	g_verts_meta = {sheet_face.name: sheet_face["sheet_face_direction"] for sheet_face in sheet_faces}
 	g_edges_meta = edge_distances
 	g = Graph(g_verts, g_edges, verts_meta=g_verts_meta, edges_meta=g_edges_meta)
-	g.vis("holes")
+	# g.vis("holes")
 	ga, edges_cut = break_cycles(g)
-	ga.vis("holes_dag")
+	# ga.vis("holes_dag")
 
 	print("edges_cut", edges_cut)
 

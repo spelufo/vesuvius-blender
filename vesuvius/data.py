@@ -68,6 +68,9 @@ class HerculaneumScan:
 	def grid_cell_patches_dir(self, jx, jy, jz):
 		return self.filepath(f"segmentation/{self.grid_cell_name(jx,jy,jz)}/patches")
 
+	def segments_dir(self):
+		return self.filepath("paths")
+
 SCANS = {
 	"scroll_1_54": HerculaneumScan(
 		"full-scrolls/Scroll1.volpkg", "20230205180739", 7.91, 54,  8096,  7888, 14376),
@@ -129,5 +132,6 @@ def download_file_start(scan, path, context):
 	filepath = scan.filepath(path)
 	if filepath.is_file():
 		return
+	print(f"Downloading {path}...")
 	thread = threading.Thread(target=download_file, args=(scan, path))
 	thread.start()

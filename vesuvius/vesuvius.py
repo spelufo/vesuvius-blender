@@ -1,4 +1,5 @@
 import bpy, bmesh
+import json
 
 from .data import *
 from .shaders import *
@@ -111,6 +112,17 @@ def add_grid_cells(cells):
 	for cell in cells:
 		create_cell_planes(cell, material)
 
+def add_segments(segments):
+	scan = get_current_scan()
+	assert scan is not None, "scan not found"
+	segments_dir = scan.segments_dir()
+	for s in segments:
+		bpy.ops.wm.obj_import(
+			filepath=f"{segments_dir}/{s}/{s}.obj", directory=f"{segments_dir}/{s}",
+			files=[{"name":f"{s}.obj", "name":f"{s}.obj"}],
+			global_scale=0.01, forward_axis='Y', up_axis='Z'
+		)
+
 class VesuviusAddScan(bpy.types.Operator):
 	bl_idname = "object.vesuvius_add_scan"
 	bl_label = "Vesuvius Scan"
@@ -212,6 +224,8 @@ class VesuviusDownloadGridCells(bpy.types.Operator, VesuviusCellOperator):
 		self.report({"INFO"}, f"Cell: {cell}.")
 		return {"FINISHED"}
 
+# TODO: Dedupe all these copy-pasted import_cell* import_layer* stuff.
+
 def import_cell_holes(ctx, scan, cell, parent_collection=None):
 	col = activate_collection(scan.grid_cell_name(*cell), parent_collection=parent_collection)
 	holes_dir = scan.grid_cell_holes_dir(*cell)
@@ -228,6 +242,15 @@ def import_cell_patches(ctx, scan, cell, parent_collection=None):
 		if not filename.endswith(".stl"):
 			continue
 		import_stl(f"{patches_dir}/{filename}")
+	return col
+
+def import_cell_chunks(ctx, scan, cell, parent_collection=None):
+	col = activate_collection(scan.grid_cell_name(*cell), parent_collection=parent_collection)
+	chunks_dir = scan.grid_cell_chunks_dir(*cell)
+	for filename in os.listdir(chunks_dir):
+		if not filename.endswith(".stl"):
+			continue
+		import_stl(f"{chunks_dir}/{filename}")
 	return col
 
 class VesuviusImportCellHoles(bpy.types.Operator, VesuviusCellOperator):
@@ -270,6 +293,21 @@ class VesuviusImportLayerPatches(bpy.types.Operator, VesuviusCellOperator):
 		_, _, jz = cell
 		import_layer_patches(context, scan, jz)
 		return {"FINISHED"}
+
+def import_layer_chunks(ctx, scan, jz):
+	chunks_col = activate_collection(f"Chunks_z{jz+1:02d}")
+	for cell in layer_cells(ctx, jz):
+		print(f"Importing chunks for cell {cell}...")
+		import_cell_chunks(ctx, scan, cell, parent_collection=chunks_col)
+
+class VesuviusImportLayerChunks(bpy.types.Operator, VesuviusCellOperator):
+	bl_idname = "object.vesuvius_import_layer_chunks"
+	bl_label = "Import layer chunks"
+	def execute_with_cell(self, context, scan, cell):
+		_, _, jz = cell
+		import_layer_chunks(context, scan, jz)
+		return {"FINISHED"}
+
 
 class VesuviusReloadShader(bpy.types.Operator):
 	bl_idname = "object.vesuvius_reload_shader"
@@ -345,6 +383,26 @@ class VesuviusHideSmall(bpy.types.Operator):
 	def execute(self, context):
 		return hide_small_objects(context) or {"FINISHED"}
 
+def dump_object_names(ctx):
+	dump = {}
+	for col in ctx.scene.collection.children:
+		objects = []
+		for obj in col.objects:
+			objects.append(obj.name)
+		for subcol in col.children_recursive:
+			for obj in subcol.objects:
+				objects.append(obj.name)
+		dump[col.name] = objects
+	with open("/home/spelufo/pro/vesuvius/stabia/logs/blender_dump.json", "w+") as f:
+		json.dump(dump, f, indent=2)
+
+class VesuviusDumpObjectNames(bpy.types.Operator):
+	bl_idname = "object.vesuvius_dump_object_names"
+	bl_label = "Dump object names"
+	def execute(self, context):
+		return dump_object_names(context) or {"FINISHED"}
+
+
 class VesuviusCreateCoreRadialCameras(bpy.types.Operator):
 	bl_idname = "object.vesuvius_create_core_radial_cameras"
 	bl_label = "Create core radial cameras"
@@ -371,6 +429,7 @@ def register():
 	bpy.utils.register_class(VesuviusImportCellHoles)
 	bpy.utils.register_class(VesuviusImportLayerHoles)
 	bpy.utils.register_class(VesuviusImportLayerPatches)
+	bpy.utils.register_class(VesuviusImportLayerChunks)
 	bpy.utils.register_class(VesuviusReloadShader)
 	bpy.utils.register_class(VesuviusRaycastSort)
 	bpy.utils.register_class(VesuviusSelectClosestByRaycast)
@@ -380,6 +439,7 @@ def register():
 	bpy.utils.register_class(VesuviusSelectA)
 	bpy.utils.register_class(VesuviusSelectB)
 	bpy.utils.register_class(VesuviusHideSmall)
+	bpy.utils.register_class(VesuviusDumpObjectNames)
 	bpy.utils.register_class(VesuviusCreateCoreRadialCameras)
 
 	bpy.utils.register_class(SelectIntersectActive)
@@ -404,6 +464,7 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusSelectA)
 	bpy.utils.unregister_class(VesuviusSelectB)
 	bpy.utils.unregister_class(VesuviusHideSmall)
+	bpy.utils.unregister_class(VesuviusDumpObjectNames)
 	bpy.utils.unregister_class(VesuviusCreateCoreRadialCameras)
 
 	bpy.utils.unregister_class(SelectIntersectActive)

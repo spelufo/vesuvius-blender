@@ -1,4 +1,5 @@
 import bpy
+import bpy_types
 import bmesh
 from mathutils import Vector, Matrix
 
@@ -44,7 +45,9 @@ def find_core_point_for_cursor_layer(ctx):
 	return o, oi
 
 def activate_collection(name, parent_collection=None):
-	if name in bpy.data.collections:
+	if isinstance(name, bpy_types.Collection):
+		col = name
+	elif name in bpy.data.collections:
 		col = bpy.data.collections[name]
 	else:
 		col = bpy.data.collections.new(name)
