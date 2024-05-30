@@ -408,8 +408,7 @@ class VesuviusStitchScrollTurns(bpy.types.Operator):
 	bl_idname = "object.vesuvius_stitch_scroll_turns"
 	bl_label = "Stitch scroll turns"
 	def execute(self, context):
-		stitch_turns_selected(context)
-		return {"FINISHED"}
+		return stitch_turns_selected(context) or {"FINISHED"}
 
 
 class VesuviusCreateCoreRadialCameras(bpy.types.Operator):
