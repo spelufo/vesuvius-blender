@@ -9,7 +9,7 @@ if "vesuvius" not in locals():
 	from . import vesuvius
 	from . import segmentation
 	from . import select_intersect_active
-	from . import stitch_turns
+	from . import weld_turns
 	from . import radial_views
 	from . import graph
 	from . import shaders
@@ -23,7 +23,7 @@ else:
 	importlib.reload(shaders)
 	importlib.reload(graph)
 	importlib.reload(radial_views)
-	importlib.reload(stitch_turns)
+	importlib.reload(weld_turns)
 	importlib.reload(select_intersect_active)
 	importlib.reload(segmentation)
 	importlib.reload(vesuvius)

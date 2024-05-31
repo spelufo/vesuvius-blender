@@ -7,7 +7,7 @@ from .utils import *
 from .segmentation import *
 from .select_intersect_active import *
 from .radial_views import *
-from .stitch_turns import *
+from .weld_turns import *
 
 ADDON_ID = "vesuvius"
 
@@ -404,12 +404,17 @@ class VesuviusDumpObjectNames(bpy.types.Operator):
 		return dump_object_names(context) or {"FINISHED"}
 
 
-class VesuviusStitchScrollTurns(bpy.types.Operator):
-	bl_idname = "object.vesuvius_stitch_scroll_turns"
-	bl_label = "Stitch scroll turns"
+class VesuviusWeldScrollTurns(bpy.types.Operator):
+	bl_idname = "object.vesuvius_weld_scroll_turns"
+	bl_label = "Weld scroll turns"
 	def execute(self, context):
-		return stitch_turns_selected(context) or {"FINISHED"}
+		return weld_turns_selected(context) or {"FINISHED"}
 
+class VesuviusMeshCleanup(bpy.types.Operator):
+	bl_idname = "object.vesuvius_mesh_cleanup"
+	bl_label = "Mesh cleanup"
+	def execute(self, context):
+		return mesh_cleanup(context) or {"FINISHED"}
 
 class VesuviusCreateCoreRadialCameras(bpy.types.Operator):
 	bl_idname = "object.vesuvius_create_core_radial_cameras"
@@ -450,7 +455,8 @@ def register():
 	bpy.utils.register_class(VesuviusSelectB)
 	bpy.utils.register_class(VesuviusHideSmall)
 	bpy.utils.register_class(VesuviusDumpObjectNames)
-	bpy.utils.register_class(VesuviusStitchScrollTurns)
+	bpy.utils.register_class(VesuviusWeldScrollTurns)
+	bpy.utils.register_class(VesuviusMeshCleanup)
 	bpy.utils.register_class(VesuviusCreateCoreRadialCameras)
 
 	bpy.utils.register_class(SelectIntersectActive)
@@ -476,7 +482,8 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusSelectB)
 	bpy.utils.unregister_class(VesuviusHideSmall)
 	bpy.utils.unregister_class(VesuviusDumpObjectNames)
-	bpy.utils.unregister_class(VesuviusStitchScrollTurns)
+	bpy.utils.unregister_class(VesuviusWeldScrollTurns)
+	bpy.utils.unregister_class(VesuviusMeshCleanup)
 	bpy.utils.unregister_class(VesuviusCreateCoreRadialCameras)
 
 	bpy.utils.unregister_class(SelectIntersectActive)
