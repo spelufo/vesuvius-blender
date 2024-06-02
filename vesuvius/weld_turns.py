@@ -109,7 +109,13 @@ def weld_turns(ctx, turns):
     inner_object, status = weld_consecutive_half_turns(ctx, inner_object, turns[i])
     if status != 'FINISHED':
       break
-  mesh_cleanup(ctx)
+  bpy.ops.object.mode_set(mode='EDIT')
+  bpy.ops.mesh.select_mode(type="VERT")
+  remove_vertices_until_manifold(ctx)
+  # Save a few keystrokes: select non-manifold just so we can quickly go back
+  # into edit mode and check if there are any left.
+  bpy.ops.mesh.select_non_manifold(extend=False, use_boundary=False)
+  bpy.ops.object.mode_set(mode='OBJECT')
   return {status}
 
 def weld_turns_selected(ctx):
@@ -119,18 +125,42 @@ def weld_turns_selected(ctx):
 # Mesh Cleanup
 
 def mesh_cleanup(ctx):
+  objs = ctx.selected_objects
+  for obj in objs:
+    print(f"Cleaning {obj.name}...")
+    bpy.ops.object.select_all(action='DESELECT')
+    obj.select_set(True)
+    ctx.view_layer.objects.active = obj
+    mesh_cleanup_object(ctx, obj)
+
+def mesh_cleanup_object(ctx, obj):
   bpy.ops.object.mode_set(mode='EDIT')
-  bpy.ops.mesh.select_mode(type="VERT")
-  remove_vertices_until_manifold(ctx)
-  bpy.ops.mesh.select_non_manifold(extend=False)
+  clip_ear_triangles(ctx, obj)
+  # bpy.ops.mesh.select_mode(type="VERT")
+  # remove_vertices_until_manifold(ctx, obj)
+  bpy.ops.mesh.select_non_manifold(extend=False, use_boundary=True)
   bpy.ops.mesh.fill_holes(sides=1000)
+  bpy.ops.mesh.quads_convert_to_tris()
   bpy.ops.object.mode_set(mode='OBJECT')
 
-def remove_vertices_until_manifold(ctx, max_iter=100):
+def remove_vertices_until_manifold(ctx, obj, max_iter=100):
   for i in range(max_iter):
     bpy.ops.mesh.select_non_manifold(use_boundary=False, extend=False)
-    if ctx.object.data.total_vert_sel == 0:
+    if obj.data.total_vert_sel == 0:
       break
-    if i == max_iter-1 and ctx.object.data.total_vert_sel > 0:
+    if i == max_iter-1 and obj.data.total_vert_sel > 0:
       assert False, "max_iter reached with non-manifold vertices"
     bpy.ops.mesh.delete(type='VERT')
+
+def clip_ear_triangles(ctx, obj):
+  bpy.ops.mesh.select_mode(type="VERT")
+  bm = bmesh.from_edit_mesh(obj.data)
+  for v in bm.verts:
+    if v.is_boundary and len(v.link_edges) == 2:
+      e1, e2 = v.link_edges
+      if e1.is_boundary and e2.is_boundary:
+        if len(set(e1.link_faces) & set(e2.link_faces)) == 1:
+          if len(e1.link_faces[0].edges) == 3:
+            v.select = True
+  bm.select_flush(True)
+  bpy.ops.mesh.delete(type='VERT')

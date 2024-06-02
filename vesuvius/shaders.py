@@ -40,7 +40,7 @@ float measure_scan(Scan scan, point p) {
 shader vesuvius_scan(
 	float offset_um = 0,
 	float nmerge_samples = 3,
-	float nmerge_step_um = 7.81,
+	float nmerge_step_um = 7.91,
 	int disable_hires = 0,
 	vector MinJ = vector(0, 0, 0),
 	vector MaxJ = vector(0, 0, 0),
