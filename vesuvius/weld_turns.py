@@ -18,7 +18,7 @@ def next_half_turn_name(inner_name):
   else:
     assert False, f"bad half turn name {inner_name}"
 
-def weld_consecutive_half_turns(ctx, inner_object, outer_object, d=15):
+def weld_consecutive_half_turns(ctx, inner_object, outer_object, d=2):
   inner_object_name = inner_object.name
   outer_object_name = outer_object.name
   if inner_object_name > outer_object_name:
@@ -111,7 +111,7 @@ def weld_turns(ctx, turns):
       break
   bpy.ops.object.mode_set(mode='EDIT')
   bpy.ops.mesh.select_mode(type="VERT")
-  remove_vertices_until_manifold(ctx)
+  # remove_vertices_until_manifold(ctx)
   # Save a few keystrokes: select non-manifold just so we can quickly go back
   # into edit mode and check if there are any left.
   bpy.ops.mesh.select_non_manifold(extend=False, use_boundary=False)
@@ -124,6 +124,25 @@ def weld_turns_selected(ctx):
 
 # Mesh Cleanup
 
+def deselect_manifolds(ctx):
+  objs = ctx.selected_objects
+  non_manifolds = []
+  for obj in objs:
+    print(f"Checking {obj.name}...")
+    bpy.ops.object.select_all(action='DESELECT')
+    obj.select_set(True)
+    ctx.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_non_manifold(extend=False, use_boundary=False)
+    if obj.data.total_vert_sel > 0:
+      non_manifolds.append(obj)
+    bpy.ops.object.mode_set(mode='OBJECT')
+  bpy.ops.object.select_all(action='DESELECT')
+  for obj in objs:
+    if obj in non_manifolds:
+      obj.select_set(True)
+      ctx.view_layer.objects.active = obj
+
 def mesh_cleanup(ctx):
   objs = ctx.selected_objects
   for obj in objs:
@@ -135,9 +154,8 @@ def mesh_cleanup(ctx):
 
 def mesh_cleanup_object(ctx, obj):
   bpy.ops.object.mode_set(mode='EDIT')
+  remove_vertices_until_manifold(ctx, obj)
   clip_ear_triangles(ctx, obj)
-  # bpy.ops.mesh.select_mode(type="VERT")
-  # remove_vertices_until_manifold(ctx, obj)
   bpy.ops.mesh.select_non_manifold(extend=False, use_boundary=True)
   bpy.ops.mesh.fill_holes(sides=1000)
   bpy.ops.mesh.quads_convert_to_tris()

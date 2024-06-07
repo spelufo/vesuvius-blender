@@ -410,6 +410,12 @@ class VesuviusWeldScrollTurns(bpy.types.Operator):
 	def execute(self, context):
 		return weld_turns_selected(context) or {"FINISHED"}
 
+class VesuviusDeselectManifolds(bpy.types.Operator):
+	bl_idname = "object.vesuvius_deselect_manifolds"
+	bl_label = "Deselect Manifolds"
+	def execute(self, context):
+		return deselect_manifolds(context) or {"FINISHED"}
+
 class VesuviusMeshCleanup(bpy.types.Operator):
 	bl_idname = "object.vesuvius_mesh_cleanup"
 	bl_label = "Mesh cleanup"
@@ -481,6 +487,7 @@ def register():
 	bpy.utils.register_class(VesuviusHideSmall)
 	bpy.utils.register_class(VesuviusDumpObjectNames)
 	bpy.utils.register_class(VesuviusWeldScrollTurns)
+	bpy.utils.register_class(VesuviusDeselectManifolds)
 	bpy.utils.register_class(VesuviusMeshCleanup)
 	bpy.utils.register_class(VesuviusBulkExportPLY)
 	bpy.utils.register_class(VesuviusCreateCoreRadialCameras)
@@ -509,6 +516,7 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusHideSmall)
 	bpy.utils.unregister_class(VesuviusDumpObjectNames)
 	bpy.utils.unregister_class(VesuviusWeldScrollTurns)
+	bpy.utils.unregister_class(VesuviusDeselectManifolds)
 	bpy.utils.unregister_class(VesuviusMeshCleanup)
 	bpy.utils.unregister_class(VesuviusBulkExportPLY)
 	bpy.utils.unregister_class(VesuviusCreateCoreRadialCameras)
