@@ -130,22 +130,10 @@ class VesuviusAddScan(bpy.types.Operator):
 	bl_label = "Vesuvius Scan"
 
 	scan_name: bpy.props.EnumProperty(
-		items=[(x,x,x) for x in [
-			"scroll_1_54",
-			"scroll_2_54",
-			"scroll_2_88",
-			"fragment_1_54",
-			"fragment_1_88",
-			"fragment_2_54",
-			"fragment_2_88",
-			"fragment_3_54",
-			"fragment_3_88",
-			"pherc_0332_53",
-			"pherc_1667_88",
-		]],
+		items=[(x,x,x) for x in SCANS],
 		name="Scan",
 		description="Select the scan to add",
-		default='scroll_1_54',
+		default="scroll_1a_791_54",
 	)
 
 	def execute(self, context):

@@ -72,28 +72,30 @@ class HerculaneumScan:
 		return self.filepath("paths")
 
 SCANS = {
-	"scroll_1_54": HerculaneumScan(
-		"full-scrolls/Scroll1.volpkg", "20230205180739", 7.91, 54,  8096,  7888, 14376),
-	"scroll_2_54": HerculaneumScan(
-		"full-scrolls/Scroll2.volpkg", "20230210143520", 7.91, 54, 11984, 10112, 14428),
-	"scroll_2_88": HerculaneumScan(
-		"full-scrolls/Scroll2.volpkg", "20230212125146", 7.91, 88, 11136,  8480,  1610),
-	"fragment_1_54": HerculaneumScan(
-		"fragments/Frag1.volpkg",      "20230205142449", 3.24, 54,  7198,  1399,  7219),
-	"fragment_1_88": HerculaneumScan(
-		"fragments/Frag1.volpkg",      "20230213100222", 3.24, 88,  7332,  1608,  7229),
-	"fragment_2_54": HerculaneumScan(
-		"fragments/Frag2.volpkg",      "20230216174557", 3.24, 54,  9984,  2288, 14111),
-	"fragment_2_88": HerculaneumScan(
-		"fragments/Frag2.volpkg",      "20230226143835", 3.24, 88, 10035,  2112, 14144),
-	"fragment_3_54": HerculaneumScan(
-		"fragments/Frag3.volpkg",      "20230215142309", 3.24, 54,  6312,  1440,  6656),
-	"fragment_3_88": HerculaneumScan(
-		"fragments/Frag3.volpkg",      "20230212182547", 3.24, 88,  6108,  1644,  6650),
-	"pherc_0332_53": HerculaneumScan(
-		"full-scrolls/PHerc0332.volpkg", "20231027191953", 3.24, 53, 9414, 9414, 22941),
-	"pherc_1667_88": HerculaneumScan(
-		"full-scrolls/PHerc1667.volpkg", "20231107190228", 3.24, 88, 8120, 7960, 26391),
+	"scroll_1a_791_54" : HerculaneumScan("full-scrolls/Scroll1/PHercParis4.volpkg", "20230205180739", 7.91, 54.0,  8096,  7888, 14376),
+	"scroll_1b_791_54" : HerculaneumScan("full-scrolls/Scroll1/PHercParis4.volpkg", "20230206171837", 7.91, 54.0,  8316,  7812, 10532),
+	"scroll_2a_791_54" : HerculaneumScan("full-scrolls/Scroll2/PHercParis3.volpkg", "20230210143520", 7.91, 54.0, 11984, 10112, 14428),
+	"scroll_2a_791_88" : HerculaneumScan("full-scrolls/Scroll2/PHercParis3.volpkg", "20230212125146", 7.91, 88.0, 11136,  8480,  1610),
+	"scroll_2b_791_54" : HerculaneumScan("full-scrolls/Scroll2/PHercParis3.volpkg", "20230206082907", 7.91, 54.0, 11296,  8448,  6586),
+	"scroll_3_324_53"  : HerculaneumScan("full-scrolls/Scroll3/PHerc332.volpkg",    "20231027191953", 3.24, 53.0,  9414,  9414, 22941),
+	"scroll_3_791_53"  : HerculaneumScan("full-scrolls/Scroll3/PHerc332.volpkg",    "20231117143551", 7.91, 53.0,  3400,  3550,  9778),
+	"scroll_3_324_70"  : HerculaneumScan("full-scrolls/Scroll3/PHerc332.volpkg",    "20231201141544", 3.24, 70.0,  9414,  9414, 22932),
+	"scroll_4_324_88"  : HerculaneumScan("full-scrolls/Scroll4/PHerc1667.volpkg",   "20231107190228", 3.24, 88.0,  8120,  7960, 26391),
+	"scroll_4_791_53"  : HerculaneumScan("full-scrolls/Scroll4/PHerc1667.volpkg",   "20231117161658", 7.91, 53.0,  3440,  3340, 11174),
+	"fragment_1_324_54": HerculaneumScan("fragments/Frag1/PHercParis2Fr47.volpkg",  "20230205142449", 3.24, 54.0,  7198,  1399,  7219),
+	"fragment_1_324_88": HerculaneumScan("fragments/Frag1/PHercParis2Fr47.volpkg",  "20230213100222", 3.24, 88.0,  7332,  1608,  7229),
+	"fragment_2_324_54": HerculaneumScan("fragments/Frag2/PHercParis2Fr143.volpkg", "20230216174557", 3.24, 54.0,  9984,  2288, 14111),
+	"fragment_2_324_88": HerculaneumScan("fragments/Frag2/PHercParis2Fr143.volpkg", "20230226143835", 3.24, 88.0, 10035,  2112, 14144),
+	"fragment_3_324_88": HerculaneumScan("fragments/Frag3/PHercParis1Fr34.volpkg",  "20230212182547", 3.24, 88.0,  6108,  1644,  6650),
+	"fragment_3_324_54": HerculaneumScan("fragments/Frag3/PHercParis1Fr34.volpkg",  "20230215142309", 3.24, 54.0,  6312,  1440,  6656),
+	"fragment_4_324_54": HerculaneumScan("fragments/Frag4/PHercParis1Fr39.volpkg",  "20230215185642", 3.24, 54.0,  5808,  1968,  9231),
+	"fragment_4_324_88": HerculaneumScan("fragments/Frag4/PHercParis1Fr39.volpkg",  "20230222173037", 3.24, 88.0,  5957,  1969,  9209),
+	"fragment_5_324_70": HerculaneumScan("fragments/Frag5/PHerc1667Cr1Fr3.volpkg",  "20231121133215", 3.24, 70.0,  4420,  1400,  7010),
+	"fragment_5_791_70": HerculaneumScan("fragments/Frag5/PHerc1667Cr1Fr3.volpkg",  "20231130111236", 7.91, 70.0,  2046,   668,  3131),
+	"fragment_6_324_53": HerculaneumScan("fragments/Frag6/PHerc51Cr4Fr8.volpkg",    "20231121152933", 3.24, 53.0,  6300,  2260,  8855),
+	"fragment_6_791_53": HerculaneumScan("fragments/Frag6/PHerc51Cr4Fr8.volpkg",    "20231130112027", 7.91, 53.0,  2724,  1068,  3683),
+	"fragment_6_324_88": HerculaneumScan("fragments/Frag6/PHerc51Cr4Fr8.volpkg",    "20231201112849", 3.24, 88.0,  6300,  2260,  8855),
+	"fragment_6_324_70": HerculaneumScan("fragments/Frag6/PHerc51Cr4Fr8.volpkg",    "20231201120546", 3.24, 70.0,  6300,  2260,  8855),
 }
 
 
