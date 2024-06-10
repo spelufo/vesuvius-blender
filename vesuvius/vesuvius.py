@@ -8,6 +8,7 @@ from .segmentation import *
 from .select_intersect_active import *
 from .radial_views import *
 from .weld_turns import *
+# from . import render_engine
 
 ADDON_ID = "vesuvius"
 
@@ -210,8 +211,10 @@ class VesuviusFocusGridCell(bpy.types.Operator, VesuviusCellOperator):
 		self.report({"INFO"}, cell_name(cell))
 		material = bpy.data.materials.get(f"vesuvius_volpkg_{scan.vol_id}")
 		s = material.node_tree.nodes["Script"]
-		s.inputs["MinJ"].default_value = cell
-		s.inputs["MaxJ"].default_value = (cell[0]+1, cell[1]+1, cell[2]+1)
+		# s.inputs["MinJ"].default_value = cell
+		# s.inputs["MaxJ"].default_value = (cell[0]+1, cell[1]+1, cell[2]+1)
+		s.inputs["MinJ"].default_value = (cell[0]-1, cell[1]-1, cell[2]-1)
+		s.inputs["MaxJ"].default_value = (cell[0]+2, cell[1]+2, cell[2]+2)
 		return {"FINISHED"}
 
 
@@ -447,6 +450,32 @@ class VesuviusBulkExportPLY(bpy.types.Operator):
 			context.window_manager.fileselect_add(self)
 			return {'RUNNING_MODAL'}
 
+class VesuviusBulkExportOBJ(bpy.types.Operator):
+	bl_idname = "object.vesuvius_bulk_export_obj"
+	bl_label = "Bulk Export OBJ"
+	directory: bpy.props.StringProperty(name="Export Path", description="Export Path", subtype='DIR_PATH')
+
+	def execute(self, context):
+		# TODO: Put the files in a subdir next to the blend file or prompt for where.
+		objs = context.selected_objects
+		bpy.ops.object.select_all(action='DESELECT')
+		for obj in objs:
+			obj.select_set(True)
+			bpy.ops.wm.obj_export(
+				filepath=f"{self.directory}/{obj.name}.obj",
+				global_scale=100.0,
+				forward_axis='Y',
+				up_axis='Z',
+				export_selected_objects=True,
+			)
+			obj.select_set(False)
+		return {"FINISHED"}
+
+	def invoke(self, context, event):
+			context.window_manager.fileselect_add(self)
+			return {'RUNNING_MODAL'}
+
+
 class VesuviusCreateCoreRadialCameras(bpy.types.Operator):
 	bl_idname = "object.vesuvius_create_core_radial_cameras"
 	bl_label = "Create core radial cameras"
@@ -490,6 +519,7 @@ def register():
 	bpy.utils.register_class(VesuviusDeselectManifolds)
 	bpy.utils.register_class(VesuviusMeshCleanup)
 	bpy.utils.register_class(VesuviusBulkExportPLY)
+	bpy.utils.register_class(VesuviusBulkExportOBJ)
 	bpy.utils.register_class(VesuviusCreateCoreRadialCameras)
 
 	bpy.utils.register_class(SelectIntersectActive)
@@ -519,6 +549,7 @@ def unregister():
 	bpy.utils.unregister_class(VesuviusDeselectManifolds)
 	bpy.utils.unregister_class(VesuviusMeshCleanup)
 	bpy.utils.unregister_class(VesuviusBulkExportPLY)
+	bpy.utils.unregister_class(VesuviusBulkExportOBJ)
 	bpy.utils.unregister_class(VesuviusCreateCoreRadialCameras)
 
 	bpy.utils.unregister_class(SelectIntersectActive)

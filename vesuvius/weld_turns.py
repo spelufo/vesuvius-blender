@@ -18,6 +18,12 @@ def next_half_turn_name(inner_name):
   else:
     assert False, f"bad half turn name {inner_name}"
 
+# TODO: Expose the d parameter to the interface. It has to be tuned to the mesh
+# depending on what vertices you want welded. For poisson, vertices line up
+# almost exactly: a very low value (2) is used. If the vertices of each side
+# have no reason to line up you'll need to measure the spacing on the mesh and
+# pick a value just under the distance between vertices.
+
 def weld_consecutive_half_turns(ctx, inner_object, outer_object, d=2):
   inner_object_name = inner_object.name
   outer_object_name = outer_object.name
@@ -59,7 +65,12 @@ def weld_consecutive_half_turns(ctx, inner_object, outer_object, d=2):
   inner_vgi = inner_vg.index
   outer_vgi = outer_vg.index
   weld_verts = []
-  for vertex in merged_object.data.vertices:
+  bpy.ops.object.mode_set(mode='EDIT')
+  bpy.ops.mesh.select_mode(type="VERT")
+  bm = bmesh.from_edit_mesh(merged_object.data)
+  for vertex in bm.verts:
+    if not vertex.is_boundary:
+      continue
     ojs_prev = None
     for (jz_start, jz_end), (ojx, ojy) in zip(jz_ranges, jz_ranges_ojs):
       # Only select vertices from the two current half turns.
@@ -90,6 +101,8 @@ def weld_consecutive_half_turns(ctx, inner_object, outer_object, d=2):
         if in_jz_range and in_jy_range and in_jx_range and in_vg:
           weld_verts.append(vertex.index)
       ojs_prev = (ojx, ojy)
+  bm.free()
+  bpy.ops.object.mode_set(mode='OBJECT')
   weld_vg.add(weld_verts, 1.0, 'ADD')
   weld_mod = merged_object.modifiers.new(name="Weld", type='WELD')
   weld_mod.merge_threshold = d
@@ -106,9 +119,11 @@ def weld_turns(ctx, turns):
   turns.sort(key=lambda obj: obj.name)
   inner_object = turns[0]
   for i in range(1, len(turns)):
+    print(f"Welding {turns[i].name}...")
     inner_object, status = weld_consecutive_half_turns(ctx, inner_object, turns[i])
     if status != 'FINISHED':
       break
+  print("Done welding.")
   bpy.ops.object.mode_set(mode='EDIT')
   bpy.ops.mesh.select_mode(type="VERT")
   # remove_vertices_until_manifold(ctx)
