@@ -430,6 +430,14 @@ class VesuviusBulkExportPLY(bpy.types.Operator):
 				forward_axis='Y',
 				up_axis='Z',
 				export_selected_objects=True,
+				export_uv=True,
+				# TODO: Decide if we want to export normals for ply.
+				# Does ply have the same problem as obj? I don't think so.
+				# Do we need it to export normals for anything? I don't think so.
+				# export_normals=False,
+				export_colors=False,
+				export_materials=False,
+				export_animation=False,
 			)
 			obj.select_set(False)
 		return {"FINISHED"}
@@ -455,6 +463,11 @@ class VesuviusBulkExportOBJ(bpy.types.Operator):
 				forward_axis='Y',
 				up_axis='Z',
 				export_selected_objects=True,
+				export_uv=True,
+				export_normals=False, # Else blender copies each vertex for each face.
+				export_colors=False,
+				export_materials=False,
+				export_animation=False,
 			)
 			obj.select_set(False)
 		return {"FINISHED"}
